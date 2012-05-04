@@ -1,7 +1,8 @@
-#include "motif.h"
 #include <assert.h>
 #include <math.h>
 #include <limits.h>
+#include <stdio.h>
+#include "motif.h"
 int bg_counter(unsigned long *acnt, unsigned long *ccnt, unsigned long *other, char *seq) 
 {
 	int i;
@@ -30,7 +31,6 @@ int pwm_reader(FILE *fp, struct pwm_matrix *pm)
 	size_t len = 0;
 	char *str = NULL;
 	char *pch = NULL;
-
 	if (fp == NULL){
 		perror("Error opening the pwm file");
 		exit(-1);
