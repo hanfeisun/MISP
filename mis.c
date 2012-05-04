@@ -18,6 +18,7 @@ int main(int argc, char *argv[])
 	FILE* pwm_fp;
 	struct pwm_matrix *pwm;
 	struct pssm_matrix *pssm;
+
 	
 	
 	pwm_fp = fopen("MA0064.pfm","r");
