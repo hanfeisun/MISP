@@ -1,0 +1,6 @@
+syntax: glob
+
+*~
+mis
+mis.dSYM
+Project.ede
