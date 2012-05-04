@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "kseq.h"
 #include "motif.h"
-KSEQ_INIT(gzFile, gzread)
+KSEQ_INIT(gzFile, gzread, gzrewind)
 #include "debug.h"
 
 float cg_percent(kseq_t* kseq);
