@@ -44,13 +44,17 @@
 		type_t f;			\
 	} kstream_t;				\
 
-#define __KS_BASIC(type_t, __bufsize)					\
+#define __KS_BASIC(type_t, __bufsize, __rewind)				\
 	static inline kstream_t *ks_init(type_t f)			\
 	{								\
 		kstream_t *ks = (kstream_t*)calloc(1, sizeof(kstream_t)); \
 		ks->f = f;						\
 		ks->buf = (char*)malloc(__bufsize);			\
 		return ks;						\
+	}								\
+	static inline void ks_rewind(kstream_t *ks)			\
+	{								\
+		__rewind(ks->f);					\
 	}								\
 	static inline void ks_destroy(kstream_t *ks)			\
 	{								\
@@ -139,9 +143,9 @@ typedef struct __kstring_t {
 		return str->l;						\
 	}
 
-#define KSTREAM_INIT(type_t, __read, __bufsize) \
+#define KSTREAM_INIT(type_t, __read, __bufsize, __rewind)	\
 	__KS_TYPE(type_t)			\
-	__KS_BASIC(type_t, __bufsize)		\
+	__KS_BASIC(type_t, __bufsize, __rewind)	\
 	__KS_GETC(__read, __bufsize)		\
 	__KS_GETUNTIL(__read, __bufsize)
 
@@ -156,6 +160,7 @@ typedef struct __kstring_t {
 	{							\
 		ks->last_char = 0;				\
 		ks->f->is_eof = ks->f->begin = ks->f->end = 0;	\
+		ks_rewind(ks->f);				\
 	}							\
 	static inline void kseq_destroy(kseq_t *ks)		\
 	{							\
@@ -222,8 +227,8 @@ typedef struct __kstring_t {
 			kstream_t *f;				\
 			} kseq_t;
 
-#define KSEQ_INIT(type_t, __read)		\
-	KSTREAM_INIT(type_t, __read, 4096)	\
+#define KSEQ_INIT(type_t, __read, __rewind)	\
+	KSTREAM_INIT(type_t, __read, 4096, __rewind)	\
 	__KSEQ_TYPE(type_t)			\
 	__KSEQ_BASIC(type_t)			\
 	__KSEQ_READ

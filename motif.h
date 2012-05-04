@@ -31,7 +31,11 @@ struct pssm_matrix
 	/* char *comment; */
 };
 
-	
+struct match_pos 
+{
+	int position;
+	float score;
+};
 
 int bg_counter(unsigned long *acnt, unsigned long *ccnt, unsigned long *other, char *seq);
 
