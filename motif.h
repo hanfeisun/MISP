@@ -31,10 +31,11 @@ struct pssm_matrix
 	/* char *comment; */
 };
 
-struct match_pos 
+struct match_doublet 
 {
 	int position;
 	float score;
+	struct match_doublet *next;
 };
 
 int bg_counter(unsigned long *acnt, unsigned long *ccnt, unsigned long *other, char *seq);
@@ -45,11 +46,14 @@ void display_pwm(struct pwm_matrix *pm);
 
 void display_pssm(struct pssm_matrix *pm);
 
-// Calculates a threshold for a scoring matrix from a given p value
+/* Calculates a threshold for a scoring matrix from a given p value */
 double threshold_fromP (struct pssm_matrix *pm, double c_p, double p);
 
 inline int init_array(double *array, size_t size, double value);
 
 int counts2Logfodds(struct pwm_matrix *pm_in, struct pssm_matrix *pm_out,  double c_p, double ps);
 
+int compare (const void * a, const void * b);
+
+void base2code(char *seq, short *code);
 #endif
