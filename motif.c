@@ -2,6 +2,9 @@
 #include <math.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <time.h>
 #include "motif.h"
 int bg_counter(unsigned long *acnt, unsigned long *ccnt, unsigned long *other, char *seq) 
 {
@@ -76,8 +79,8 @@ int pwm_reader(FILE *fp, struct pwm_matrix *pm)
 	}
 	printf("pm->len is %d\n", pm->len);
 	return 0;
-
 }
+
 void display_pwm(struct pwm_matrix *pm)
 {
 	int i;
@@ -148,6 +151,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 	int i, j;
 	int max, min;
 	int maxT, minV;
+	assert(pm->kinds > 0 && pm->len > 0);
 	int mat[pm->kinds][pm->len];
 	int tmp;
 	printf("pm->len(thred) is %d\n", pm->len);	
@@ -190,6 +194,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 	double table0[tmp+1];
 	double table1[tmp+1];
 	int r,s;
+	double sum;
 	init_array(table0, tmp+1, 0.0);
 	init_array(table1, tmp+1, 0.0);	
 
@@ -228,7 +233,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 			table1[r] = 0.0;
 		}
 	}
-	double sum = 0.0;
+	sum = 0.0;
 
 	for (r = tmp; r >=0; --r) {
 		sum += table0[r];
@@ -249,4 +254,32 @@ inline int init_array(double *array, size_t size, double value)
 	for (i = 0; i < size; ++i)
 		array[i] = value;
 	return 0;
+}
+
+void base2code(char *seq, short *code) {
+	int i;
+	for (i=0; seq[i] != 0; ++i) {
+		switch (seq[i]) {
+		case 'A': case 'a':
+			code[i] = PWM_BASE_A;
+			break;
+		case 'C': case 'c': 
+			code[i] = PWM_BASE_C;
+			break;
+		case 'T': case 't': 
+			code[i] = PWM_BASE_T;
+			break;
+		case 'G': case 'g': 
+			code[i] = PWM_BASE_G;
+			break;
+		default:
+			srand(time(NULL));
+			code[i] = rand() % 4;
+			break;
+		}
+	}
+	code[i] = -1;
+	/* the end mark */
+		
+		
 }

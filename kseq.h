@@ -45,7 +45,7 @@
 	} kstream_t;				\
 
 #define __KS_BASIC(type_t, __bufsize, __rewind)				\
-	static inline kstream_t *ks_init(type_t f)			\
+static inline kstream_t *ks_init(type_t f)			\
 	{								\
 		kstream_t *ks = (kstream_t*)calloc(1, sizeof(kstream_t)); \
 		ks->f = f;						\
