@@ -24,11 +24,13 @@ struct pwm_matrix
 
 struct pssm_matrix 
 {
-	float **score;
+	double **score;
 	/* weight[kinds][position] */
 	int len;
 	short kinds;
+	char *name;
 	/* char *comment; */
+	struct pssm_matrix *next;
 };
 
 struct match_doublet 
@@ -42,6 +44,10 @@ int bg_counter(unsigned long *acnt, unsigned long *ccnt, unsigned long *other, c
 
 int pwm_reader(FILE *fp, struct pwm_matrix *pm);
 
+void pssm_reader(FILE *fp, struct pssm_matrix *pm);
+	
+void pssm2logodd(struct pssm_matrix *pm, double c_p);
+	
 void display_pwm(struct pwm_matrix *pm);
 
 void display_pssm(struct pssm_matrix *pm);

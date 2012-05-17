@@ -42,8 +42,8 @@
 		(progn
 		  (dolist (pos (cddr mid ))
 		    (dolist (bas (cddr pos))
-		      (push-bas bas #'prob->count)
-		      ;; (push-bas bas #'(lambda (x) x))
+		      ;; (push-bas bas #'prob->count)
+		      (push-bas bas #'(lambda (x) x))
 		      ))
 		  (format-bas 'a)
 		  (format-bas 't)

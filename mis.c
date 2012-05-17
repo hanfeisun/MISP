@@ -21,42 +21,37 @@ int main(int argc, char *argv[])
 	gzFile fp;
 	kseq_t *seq;
 	
-	FILE* pwm_fp;
-	struct pwm_matrix *pwm;
+	FILE* pssm_fp;
 	struct pssm_matrix *pssm;
 	struct match_doublet *dm;
 	
 	
 	
-	pwm_fp = fopen("MA0067.pfm","r");
+	pssm_fp = fopen("./database/cistrome.db","r");
 	
-	pwm = malloc(sizeof(struct pwm_matrix));
 	pssm = malloc(sizeof(struct pssm_matrix));
 	dm = malloc(sizeof(struct match_doublet));
-	pwm_reader(pwm_fp,pwm);
-	display_pwm(pwm);
-	counts2Logfodds(pwm, pssm, 0.25, PSUEDO_E);
+	pssm_reader(pssm_fp, pssm);
+	display_pssm(pssm);	
+	pssm2logodd(pssm, 0.25);
 	display_pssm(pssm);
-	/* printf("threshold is %f\n",threshold_fromP(pssm, 0.25, 0.99)); */
-	/* printf("threshold is %f\n",threshold_fromP(pssm, 0.25, 0.1)); */
-	/* printf("threshold is %f\n",threshold_fromP(pssm, 0.25, 0.00001));	 */
 	
-	fclose(pwm_fp);
-	if (argc == 1) {
-		fprintf(stderr, "Usage: %s <in.seq>\n", argv[0]);
-		return 1;
-	}
-	fp = gzopen(argv[1], "r");
-	seq = kseq_init(fp);
+	fclose(pssm_fp);
+	/* if (argc == 1) { */
+	/* 	fprintf(stderr, "Usage: %s <in.seq>\n", argv[0]); */
+	/* 	return 1; */
+	/* } */
+	/* fp = gzopen(argv[1], "r"); */
+	/* seq = kseq_init(fp); */
 	
-	printf("CG percent is %f\n",cg_percent(seq));
-	kseq_rewind(seq);
-	lookahead_filter(5, seq, pssm, 0.25, threshold_fromP(pssm, 0.25, 0.1), dm);
-	/* for(;dm->next != NULL; dm=dm->next) */
-	/* 	printf("%d,%f\n",dm->position,dm->score); */
+	/* printf("CG percent is %f\n",cg_percent(seq)); */
+	/* kseq_rewind(seq); */
+	/* lookahead_filter(5, seq, pssm, 0.25, threshold_fromP(pssm, 0.25, 0.1), dm); */
+	/* /\* for(;dm->next != NULL; dm=dm->next) *\/ */
+	/* /\* 	printf("%d,%f\n",dm->position,dm->score); *\/ */
 
-	kseq_destroy(seq);
-	gzclose(fp);
+	/* kseq_destroy(seq); */
+	/* gzclose(fp); */
 	return 0;
 }
 
