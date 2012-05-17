@@ -6,6 +6,9 @@
 #include <assert.h>
 #include <time.h>
 #include "motif.h"
+
+#define PSUDO_SMALL 0.0001
+
 int bg_counter(unsigned long *acnt, unsigned long *ccnt, unsigned long *other, char *seq) 
 {
 	int i;
@@ -25,12 +28,14 @@ int bg_counter(unsigned long *acnt, unsigned long *ccnt, unsigned long *other, c
 }
 
 
-int pwm_reader(FILE *fp, struct pwm_matrix *pm)
+
+void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 /* allocate the memory for pm before use this function */
 {
 	int read;
 	int i;
 	int j;
+	int k;
 	size_t len = 0;
 	char *str = NULL;
 	char *pch = NULL;
@@ -38,48 +43,85 @@ int pwm_reader(FILE *fp, struct pwm_matrix *pm)
 		perror("Error opening the pwm file");
 		exit(-1);
 	}
+	
+
 	pm->kinds = 4;
 	pm->len = 0;
-	pm->weight = (int **)malloc(sizeof(int *) * pm->kinds);
+	pm->score = (double **)malloc(sizeof(double *) * pm->kinds);
 	for (i = 0; i < 4; i++)
-		pm->weight[i] = (int *)malloc(sizeof(int) * PWM_MAX_COL);
+		pm->score[i] = (double *)malloc(sizeof(double) * PWM_MAX_COL);
+
 	
 	read = getline (&str, &len, fp);
-	/* read == -1: error or EOF*/
-	i = 0;
+	i = -1;
 	j = 0;
-
-	while(read != -1 && i < 4) {
+	while (read != -1 && i <= pm->kinds) {
 		assert(j < PWM_MAX_COL);
-
-		if (j == 0) 
+		if (j == 0) {
 			pch = strtok(str, " ");
-		else
+		} else {
 			pch = strtok(NULL, " ");
-		if (j == 0 && pch == NULL) {
-			perror("PSSM file error");
-			exit(-1);
-		}
-		else if (j != 0 && pch == NULL) {
-			pm->weight[i++][j] = -1;
-			if (pm->len)
-			{
-				assert(pm->len == j);
-			}
-			
-			/* check whether all line has same count of elements */
-			else
-				pm->len = j;
-			j = 0;	/* at the end of a line */
-			read = getline (&str, &len, fp);
-		} else {	/* pch has value */
-			assert((pm->weight[i][j++] = atoi(pch)) >= 0);
 		}
 		
+		if (pch == NULL) {
+			if (i == -1) {}
+			else if (i ==0 ) {
+				pm->len = j-1;
+				j = 0;
+				i++;
+			}
+			else if (i == pm->kinds -1) {
+				i = -1;
+				j = 0;
+				pm->next = malloc(sizeof(struct pssm_matrix));
+				pm = pm->next;
+				pm->kinds = 4;
+				pm->len = 0;
+				pm->score = (double **)malloc(sizeof(double *) * pm->kinds);
+				for (k = 0; k < 4; k++)
+					pm->score[k] = (double *)malloc(sizeof(double) * PWM_MAX_COL);
+			} else {
+				assert(pm->len == j-1);
+				j = 0;
+				i++;
+			}
+			
+			read = getline (&str, &len, fp);
+			continue;
+		}
+		if (pch != NULL) {
+			if (i == -1) {
+				if (strncmp(pch,"\n", 1) != 0) {
+					pm->name = (char *)malloc(sizeof(char) * strlen(pch));
+					strcpy(pm->name, pch);
+					i = 0;
+				} 
+				read = getline (&str, &len, fp);
+			} else {
+				pm->score[i][j++] = atof(pch);
+			}
+		}
 	}
-	printf("pm->len is %d\n", pm->len);
-	return 0;
+	pm->next=NULL;
+
 }
+
+void pssm2logodd(struct pssm_matrix *pm, double c_p)
+{
+	int i;
+	int j;
+	for(; pm->next != NULL; pm = pm->next) {
+		for (i = 0; i < pm->kinds; ++i) {
+			for (j = 0; j < pm->len; ++j) {
+				if (i==PWM_BASE_G || i==PWM_BASE_C)
+					pm->score[i][j] = log(pm->score[i][j] / c_p + PSUDO_SMALL);
+				else
+					pm->score[i][j] = log(pm->score[i][j] / (1 - c_p) + PSUDO_SMALL);
+			}
+		}
+	}
+}
+
 
 void display_pwm(struct pwm_matrix *pm)
 {
@@ -97,52 +139,17 @@ void display_pssm(struct pssm_matrix *pm)
 {
 	int i;
 	int j;
-	for (i = 0; i < pm->kinds; ++i) {
-		for (j = 0; j < pm->len; ++j) {
-			printf("%.2f\t", pm->score[i][j]);
+	for(; pm->next != NULL; pm = pm->next) {
+		printf("%s",pm->name);
+		for (i = 0; i < pm->kinds; ++i) {
+			for (j = 0; j < pm->len; ++j) {
+				printf("%.3f\t", pm->score[i][j]);
+			}
+			putchar('\n');
 		}
-		putchar('\n');
 	}
 }
 
-int counts2Logfodds(struct pwm_matrix *pm_in, struct pssm_matrix *pm_out,  double c_p, double ps)
-/* allocate memory for pm_in and pm_out before using */
-{
-	int i, j;
-	int count;
-	double freq;
-	double a_p = 0.5 - c_p;
-	assert(a_p > 0 && c_p > 0);
-
-	pm_out->kinds = pm_in->kinds;
-	pm_out->len = pm_in->len;
-
-	pm_out->score = (float **)malloc(sizeof(float *) * pm_out->kinds);
-	for (i = 0; i < 4; i++)
-		pm_out->score[i] = (float *)malloc(sizeof(float) * pm_out->len);
-	
-
-	for (i = 0; i < pm_out->len; ++i) {
-		count = 0;
-		for (j = 0; j < pm_out->kinds; ++j)
-			count += pm_in->weight[j][i];
-		for (j = 0; j < pm_out->kinds; ++j) {
-			if (j == PWM_BASE_C || j == PWM_BASE_G) {
-				freq = (pm_in->weight[j][i] + c_p) / (count + ps);
-				pm_out->score[j][i] = log(freq) - log(c_p);
-			}
-			else if (j == PWM_BASE_A || j == PWM_BASE_T) {
-				freq = (pm_in->weight[j][i] + a_p) / (count + ps);
-				pm_out->score[j][i] = log(freq) - log(a_p);
-			} else {
-				perror("Error");
-				exit(-1);
-			}
-		}
-	}
-
-	return 0;
-}
 
 
 double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
@@ -282,4 +289,96 @@ void base2code(char *seq, short *code) {
 	/* the end mark */
 		
 		
+}
+
+int pwm_reader(FILE *fp, struct pwm_matrix *pm)
+/* allocate the memory for pm before use this function */
+{
+	int read;
+	int i;
+	int j;
+	size_t len = 0;
+	char *str = NULL;
+	char *pch = NULL;
+	if (fp == NULL){
+		perror("Error opening the pwm file");
+		exit(-1);
+	}
+	pm->kinds = 4;
+	pm->len = 0;
+	pm->weight = (int **)malloc(sizeof(int *) * pm->kinds);
+	for (i = 0; i < 4; i++)
+		pm->weight[i] = (int *)malloc(sizeof(int) * PWM_MAX_COL);
+	
+	read = getline (&str, &len, fp);
+	/* read == -1: error or EOF*/
+	i = 0;
+	j = 0;
+
+	while(read != -1 && i < 4) {
+		assert(j < PWM_MAX_COL);
+
+		if (j == 0) 
+			pch = strtok(str, " ");
+		else
+			pch = strtok(NULL, " ");
+		if (j == 0 && pch == NULL) {
+			perror("PSSM file error");
+			exit(-1);
+		}
+		else if (j != 0 && pch == NULL) {
+			pm->weight[i++][j] = -1;
+			if (pm->len)
+			{
+				assert(pm->len == j);
+			}
+			/* check whether all line has same count of elements */
+			else
+				pm->len = j;
+			j = 0;	/* at the end of a line */
+			read = getline (&str, &len, fp);
+		} else {	/* pch has value */
+			assert((pm->weight[i][j++] = atoi(pch)) >= 0);
+		}
+		
+	}
+	printf("pm->len is %d\n", pm->len);
+	return 0;
+}
+
+int counts2Logfodds(struct pwm_matrix *pm_in, struct pssm_matrix *pm_out,  double c_p, double ps)
+/* allocate memory for pm_in and pm_out before using */
+{
+	int i, j;
+	int count;
+	double freq;
+	double a_p = 0.5 - c_p;
+	assert(a_p > 0 && c_p > 0);
+
+	pm_out->kinds = pm_in->kinds;
+	pm_out->len = pm_in->len;
+
+	pm_out->score = (double **)malloc(sizeof(float *) * pm_out->kinds);
+	for (i = 0; i < 4; i++)
+		pm_out->score[i] = (double *)malloc(sizeof(float) * pm_out->len);
+	for (i = 0; i < pm_out->len; ++i) {
+		count = 0;
+		for (j = 0; j < pm_out->kinds; ++j)
+			count += pm_in->weight[j][i];
+		for (j = 0; j < pm_out->kinds; ++j) {
+			if (j == PWM_BASE_C || j == PWM_BASE_G) {
+				freq = (pm_in->weight[j][i] + c_p) / (count + ps);
+				pm_out->score[j][i] = log(freq) - log(c_p);
+			}
+			else if (j == PWM_BASE_A || j == PWM_BASE_T) {
+				freq = (pm_in->weight[j][i] + a_p) / (count + ps);
+				pm_out->score[j][i] = log(freq) - log(a_p);
+			} else {
+				perror("Error");
+				exit(-1);
+			}
+		}
+	}
+
+	return 0;
 }
