@@ -93,7 +93,7 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 			if (i == -1) {
 				if (strncmp(pch,"\n", 1) != 0) {
 					pm->name = (char *)malloc(sizeof(char) * strlen(pch));
-					strcpy(pm->name, pch);
+					strncpy(pm->name, pch, strlen(pch)-1);
 					i = 0;
 				} 
 				read = getline (&str, &len, fp);
@@ -122,7 +122,19 @@ void pssm2logodd(struct pssm_matrix *pm, double c_p)
 	}
 }
 
+struct pssm_matrix *use_pssm(struct pssm_matrix *pm, char* name)
+{
+	for(; pm->next != NULL; pm = pm->next) {
+		if (strcasecmp(pm->name, name) == 0)
+			return pm;
+	}
+	printf("Can't find the motif id: %s\n",name);
+	exit(1);
+}
 
+	
+				
+	
 void display_pwm(struct pwm_matrix *pm)
 {
 	int i;
@@ -140,7 +152,7 @@ void display_pssm(struct pssm_matrix *pm)
 	int i;
 	int j;
 	for(; pm->next != NULL; pm = pm->next) {
-		printf("%s",pm->name);
+		printf("%s\n",pm->name);
 		for (i = 0; i < pm->kinds; ++i) {
 			for (j = 0; j < pm->len; ++j) {
 				printf("%.3f\t", pm->score[i][j]);
@@ -161,7 +173,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 	assert(pm->kinds > 0 && pm->len > 0);
 	int mat[pm->kinds][pm->len];
 	int tmp;
-	printf("pm->len(thred) is %d\n", pm->len);	
+	/* printf("pm->len(thred) is %d\n", pm->len);	 */
 
 	/* init */
 	for (i = 0; i < pm->len; ++i) {
@@ -195,9 +207,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 	}
 
 	tmp = maxT - pm->len * minV;
-	printf("tmp is %d\n" , tmp);
-	
-
+	/* printf("tmp is %d\n" , tmp); */
 	double table0[tmp+1];
 	double table1[tmp+1];
 	int r,s;
@@ -264,6 +274,7 @@ inline int init_array(double *array, size_t size, double value)
 }
 
 void base2code(char *seq, short *code) {
+	srand(time(NULL));
 	int i;
 	for (i=0; seq[i] != 0; ++i) {
 		switch (seq[i]) {
@@ -280,7 +291,6 @@ void base2code(char *seq, short *code) {
 			code[i] = PWM_BASE_G;
 			break;
 		default:
-			srand(time(NULL));
 			code[i] = rand() % 4;
 			break;
 		}
