@@ -6,6 +6,7 @@
 #define PWM_BASE_C 1
 #define PWM_BASE_G 2
 #define PWM_BASE_T 3
+#define PWM_BASE_N 4
 #define PSUEDO_E 0.1
 #include "kseq.h"
 #include <zlib.h>
@@ -61,5 +62,7 @@ int counts2Logfodds(struct pwm_matrix *pm_in, struct pssm_matrix *pm_out,  doubl
 
 int compare (const void * a, const void * b);
 
+struct pssm_matrix *use_pssm(struct pssm_matrix *pm, char* name);
+	
 void base2code(char *seq, short *code);
 #endif

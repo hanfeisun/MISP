@@ -13,7 +13,7 @@ KSEQ_INIT(gzFile, gzread, gzrewind)
 #define KINDS 4			/* A, T, C, G */
 float cg_percent(kseq_t* kseq);
 void expected_difference(struct pssm_matrix *pm, float c_p, double* ediff);
-void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, double tol, struct match_doublet* md);
+void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, double tol, struct match_doublet *md, FILE *output);
 
 
 int main(int argc, char *argv[])
@@ -22,36 +22,45 @@ int main(int argc, char *argv[])
 	kseq_t *seq;
 	
 	FILE* pssm_fp;
+	FILE* output;
 	struct pssm_matrix *pssm;
 	struct match_doublet *dm;
-	
+	float p_cg;
+	float p_value;
 	
 	
 	pssm_fp = fopen("./database/cistrome.db","r");
-	
 	pssm = malloc(sizeof(struct pssm_matrix));
 	dm = malloc(sizeof(struct match_doublet));
 	pssm_reader(pssm_fp, pssm);
-	display_pssm(pssm);	
-	pssm2logodd(pssm, 0.25);
-	display_pssm(pssm);
+
 	
 	fclose(pssm_fp);
-	/* if (argc == 1) { */
-	/* 	fprintf(stderr, "Usage: %s <in.seq>\n", argv[0]); */
-	/* 	return 1; */
-	/* } */
-	/* fp = gzopen(argv[1], "r"); */
-	/* seq = kseq_init(fp); */
-	
-	/* printf("CG percent is %f\n",cg_percent(seq)); */
-	/* kseq_rewind(seq); */
-	/* lookahead_filter(5, seq, pssm, 0.25, threshold_fromP(pssm, 0.25, 0.1), dm); */
-	/* /\* for(;dm->next != NULL; dm=dm->next) *\/ */
-	/* /\* 	printf("%d,%f\n",dm->position,dm->score); *\/ */
+	if (argc < 5) {
+		fprintf(stderr, "Usage: %s <in.seq> <p-value> <motif-id> <output-path>\n", argv[0]);
+		return 1;
+	}
 
-	/* kseq_destroy(seq); */
-	/* gzclose(fp); */
+	fp = gzopen(argv[1], "r");
+	p_value = atof(argv[2]);
+	output = fopen(argv[4],"w");
+	seq = kseq_init(fp);
+	p_cg=cg_percent(seq);
+
+	for(; pssm->next != NULL; pssm = pssm->next) {
+		if (strcasecmp(pssm->name, argv[3]) == 0)
+			break;
+	}
+	pssm2logodd(pssm, p_cg);
+	kseq_rewind(seq);
+	fprintf(output, "# Parameter List:\n");
+	fprintf(output, "# Input sequence: %s\n",argv[1]);
+	fprintf(output, "# Output path: %s\n",argv[4]);
+	fprintf(output, "# P value: %.3f\n",p_value);	
+	lookahead_filter(5, seq, pssm, p_cg/2.0, threshold_fromP(pssm, p_cg/2.0, p_value), dm, output);
+
+	kseq_destroy(seq);
+	gzclose(fp);
 	return 0;
 }
 
@@ -64,19 +73,18 @@ float cg_percent(kseq_t* kseq)
 	other = 0;
 	while ((l = kseq_read(kseq)) >= 0) 
 		bg_counter(&a, &c, &other, kseq->seq.s);
-
+	printf("Calculating Background..\n");
 	printf("A or T: %ld\n", a);
 	printf("C or G: %ld\n", c);
 	printf("Others: %ld\n", other);
-	
 	if (a+c<50) {
 		printf("Your input sequence has too few lines, the bg score will be set to 0.5\n");
 		return 0.5;
-	} else  return ((double)a)/(a+c);
+	} else  return ((double)c)/(a+c);
 }
 
 
-void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, double tol, struct match_doublet* md)
+void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, double tol, struct match_doublet* md, FILE *output)
 {
 	int i, j;
 	int window_pos;
@@ -84,19 +92,21 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	int *order_y;
 	double *good;
 	double *scores;
+	int pos_max;
+	double hit_sum, hit_max;
 	double tmp, tmp_max;
 	int bufsize;
+	int has_hit;
 	short *seq_code;
+	short *seq_code_gc;
 	uint_fast32_t *sA;
 	uint_fast32_t code;
 	const uint_fast32_t size = 1 << (BITSHIFT * q);;
 
-	
 	assert(pm->kinds == KINDS);	/* Only for DNA */
 	/* Find the window */
 	if (q > pm->len) {
-		lookahead_filter(pm->len, kseq, pm, c_p, tol, md);
-		return;
+		lookahead_filter(pm->len, kseq, pm, c_p, tol, md, output);
 	}
 	sA = calloc(q, sizeof(uint_fast32_t));	
 	good = malloc(sizeof(double) * pm->len);
@@ -106,7 +116,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		tmp += good[i];
 	tmp_max = tmp;
 	window_pos = 0;
-
+	
 	for (i = 0; i < pm->len - q; ++i) {
 		tmp -= good[i];
 		tmp += good[i+q];
@@ -125,7 +135,6 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	qsort(order, pm->len - q, sizeof(int), compare);
 
 	/* Lookahead array for indeces outside the window */
-	free(good);
 	good = malloc(sizeof(double) * (pm->len - q));
 	for (j = pm->len - q; j > 0; --j) {
 		tmp_max = LOGODD_MIN;
@@ -146,7 +155,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	/* printf("%f\n",scores[0]); */
 	j = 0;
 	code = 0;
-	
+
 	while(1) {
 		++code;
 		if (code >= size)
@@ -174,14 +183,24 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		}
 		/* printf("%d's score is %f\n", code, scores[code]); */
 	}
-	
+
 	/* Actual scanning */
 	tmp = 0;
 	tmp_max = tol - good[0];
-
-
+	
+	fprintf(output, "# CG percent: %.2f\n", c_p*2);
+	fprintf(output, "# tolerance: %.2f\n", tol);
+	fprintf(output, "# factor ID: %s\n", pm->name);	
+	fprintf(output, "sequence name\tsequence length\thits position(score)\tsum score\tmax position(score)\n");
 	while ((bufsize = kseq_read(kseq)) >= 0) {
+		fprintf(output,"%s\t%d\t", kseq->name.s, bufsize);
+		if (bufsize < pm->len) {
+			fprintf(output, "-\t-\t-\n");
+			continue;
+		}
+
 		seq_code = malloc(sizeof(short) * (bufsize+1));
+		seq_code_gc = seq_code;
 
 		/* printf("base2code\n"); */
 		base2code(kseq->seq.s, seq_code);
@@ -192,17 +211,20 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	
 		code = 0;
 
-
+		
 		for (i = window_pos; i < window_pos + q - 1; ++i) {
 			code = (code << BITSHIFT) + seq_code[i];
 		}
-	
+
+		hit_max = -10;
+		hit_sum = 0;
+		has_hit = 0;
+		pos_max = -1;
 
 		for(i = 0; seq_code[pm->len - 1]!=-1; ++seq_code) {
 			++i;
 			code = ((code << BITSHIFT) + seq_code[window_pos + q -1]) & (size - 1);
 			/* printf("now code is %d\n",code); */
-
 			if (scores[code] >= tmp_max) {
 				tmp = scores[code];
 				order_y = order;
@@ -211,20 +233,34 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 						break;
 					tmp += pm->score[seq_code[*order_y]][*order_y];
 					++order_y;
+
 				}
 				if (tmp >= tol) {
-					md->position = i;
-					md->score = tmp;
-					md->next = malloc(sizeof(struct match_doublet));
-					md = md->next;
+					tmp -= tol;
+					/* md->position = i; */
+					/* md->score = tmp; */
+					/* md->next = malloc(sizeof(struct match_doublet)); */
+					hit_sum += tmp;
+					if (tmp > hit_max) {
+						hit_max = tmp;
+						pos_max = i;
+					}
+					fprintf(output,"%.2f(%d),", tmp, i );
+					has_hit = 1;
+					/* md = md->next; */
 				}
-			
+
 			}
-		
 		}
+
+		free(seq_code_gc);		
+		if (has_hit)
+			fprintf(output, "\t%.2f\t%.2f(%d)\n",hit_sum, hit_max, pos_max);
+		else
+			fprintf(output, "-\t-\t-\n");
 	}
-	
-	md->next = NULL;
+
+
 }
 
 int compare (const void * a, const void * b)
