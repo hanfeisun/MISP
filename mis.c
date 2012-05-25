@@ -20,42 +20,50 @@ int main(int argc, char *argv[])
 {
 	gzFile fp;
 	kseq_t *seq;
-	
 	FILE* pssm_fp;
 	FILE* output;
 	struct pssm_matrix *pssm;
+	struct pssm_matrix *pssm_head;
+	
 	struct match_doublet *dm;
 	float p_cg;
 	float p_value;
-	
-	
-	pssm_fp = fopen("./database/cistrome.db","r");
+
 	pssm = malloc(sizeof(struct pssm_matrix));
+	pssm_head = pssm;
 	dm = malloc(sizeof(struct match_doublet));
-	pssm_reader(pssm_fp, pssm);
+
 
 	
-	fclose(pssm_fp);
+	
 	if (argc < 5) {
-		fprintf(stderr, "Usage: %s <in.seq> <p-value> <motif-id> <output-path>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <in.seq> <in.db> <p-value> <motif-id> <output-path>\n", argv[0]);
 		return 1;
 	}
-
+	
+	pssm_fp = fopen(argv[2],"r");
+	pssm_reader(pssm_fp, pssm);
+	fclose(pssm_fp);
+	
 	fp = gzopen(argv[1], "r");
-	p_value = atof(argv[2]);
-	output = fopen(argv[4],"w");
+	p_value = atof(argv[3]);
+	output = fopen(argv[5],"w");
 	seq = kseq_init(fp);
 	p_cg=cg_percent(seq);
 
 	for(; pssm->next != NULL; pssm = pssm->next) {
-		if (strcasecmp(pssm->name, argv[3]) == 0)
+		if (strcasecmp(pssm->name, argv[4]) == 0)
 			break;
+	}
+	if (strcasecmp(pssm->name, argv[4]) != 0) {
+		printf("Can't find motif id %s", argv[3]);
+		return 0;
 	}
 	pssm2logodd(pssm, p_cg);
 	kseq_rewind(seq);
 	fprintf(output, "# Parameter List:\n");
 	fprintf(output, "# Input sequence: %s\n",argv[1]);
-	fprintf(output, "# Output path: %s\n",argv[4]);
+	fprintf(output, "# Output path: %s\n",argv[5]);
 	fprintf(output, "# P value: %.3f\n",p_value);	
 	lookahead_filter(5, seq, pssm, p_cg/2.0, threshold_fromP(pssm, p_cg/2.0, p_value), dm, output);
 
