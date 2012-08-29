@@ -212,6 +212,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 	double table1[tmp+1];
 	int r,s;
 	double sum;
+	
 	init_array(table0, tmp+1, 0.0);
 	init_array(table1, tmp+1, 0.0);	
 
@@ -260,7 +261,8 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 			return (double) ((r + (pm->len) * minV + 1) / PVAL_DP_MULTIPLIER);
 	}
 	
-
+	free(table0);
+	free(table1);
 	return (double) (((pm->len) * minV) / PVAL_DP_MULTIPLIER);
 }
 
