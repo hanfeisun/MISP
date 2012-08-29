@@ -101,7 +101,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	double *good;
 	double *scores;
 	int pos_max;
-	double hit_sum, hit_max;
+	double hit_max;
 	double tmp, tmp_max;
 	int bufsize;
 	int has_hit;
@@ -199,7 +199,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	fprintf(output, "# CG percent: %.2f\n", c_p*2);
 	fprintf(output, "# tolerance: %.2f\n", tol);
 	fprintf(output, "# factor ID: %s\n", pm->name);	
-	fprintf(output, "sequence name\tsequence length\thits position(score)\tsum score\tmax position(score)\n");
+	fprintf(output, "sequence name\tsequence length\thits score(position)\tmax score(position)\n");
 	while ((bufsize = kseq_read(kseq)) >= 0) {
 		fprintf(output,"%s\t%d\t", kseq->name.s, bufsize);
 		if (bufsize < pm->len) {
@@ -210,12 +210,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		seq_code = malloc(sizeof(short) * (bufsize+1));
 		seq_code_gc = seq_code;
 
-		/* printf("base2code\n"); */
 		base2code(kseq->seq.s, seq_code);
-
-		/* for (i = 0; seq_code[i] != -1; ++i) */
-		/* 	printf("%d",seq_code[i]); */
-		/* printf("\n%s\n",kseq->seq.s); */
 	
 		code = 0;
 
@@ -225,7 +220,6 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		}
 
 		hit_max = -10;
-		hit_sum = 0;
 		has_hit = 0;
 		pos_max = -1;
 
@@ -245,10 +239,6 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 				}
 				if (tmp >= tol) {
 					tmp -= tol;
-					/* md->position = i; */
-					/* md->score = tmp; */
-					/* md->next = malloc(sizeof(struct match_doublet)); */
-					hit_sum += tmp;
 					if (tmp > hit_max) {
 						hit_max = tmp;
 						pos_max = i;
@@ -263,7 +253,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 
 		free(seq_code_gc);		
 		if (has_hit)
-			fprintf(output, "\t%.2f\t%.2f(%d)\n",hit_sum, hit_max, pos_max);
+			fprintf(output, "\t%.2f(%d)\n",hit_max, pos_max);
 		else
 			fprintf(output, "-\t-\t-\n");
 	}
