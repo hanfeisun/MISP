@@ -13,7 +13,7 @@ KSEQ_INIT(gzFile, gzread, gzrewind)
 #define KINDS 4			/* A, T, C, G */
 float cg_percent(kseq_t* kseq);
 void expected_difference(struct pssm_matrix *pm, float c_p, double* ediff);
-void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, double tol, struct match_doublet *md, FILE *output);
+void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, double tol, struct match_doublet *md, FILE *output, int mini);
 
 
 int main(int argc, char *argv[])
@@ -23,21 +23,16 @@ int main(int argc, char *argv[])
 	FILE* pssm_fp;
 	FILE* output;
 	struct pssm_matrix *pssm;
-	struct pssm_matrix *pssm_head;
-	
+	char of_name[50];
 	struct match_doublet *dm;
 	float p_cg;
 	float p_value;
 
 	pssm = malloc(sizeof(struct pssm_matrix));
-	pssm_head = pssm;
 	dm = malloc(sizeof(struct match_doublet));
 
-
-	
-	
 	if (argc < 5) {
-		fprintf(stderr, "Usage: %s <in.seq> <in.db> <p-value> <motif-id> <output-path>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <in.seq> <in.db> <p-value> <motif-id> <output-prefix>\n", argv[0]);
 		return 1;
 	}
 	
@@ -47,26 +42,45 @@ int main(int argc, char *argv[])
 	
 	fp = gzopen(argv[1], "r");
 	p_value = atof(argv[3]);
-	output = fopen(argv[5],"w");
+
 	seq = kseq_init(fp);
 	p_cg=cg_percent(seq);
-
-	for(; pssm->next != NULL; pssm = pssm->next) {
-		if (strcasecmp(pssm->name, argv[4]) == 0)
-			break;
-	}
-	if (strcasecmp(pssm->name, argv[4]) != 0) {
-		printf("Can't find motif id %s", argv[3]);
-		return 0;
-	}
 	pssm2logodd(pssm, p_cg);
-	kseq_rewind(seq);
-	fprintf(output, "# Parameter List:\n");
-	fprintf(output, "# Input sequence: %s\n",argv[1]);
-	fprintf(output, "# Output path: %s\n",argv[5]);
-	fprintf(output, "# P value: %.3f\n",p_value);	
-	lookahead_filter(5, seq, pssm, p_cg/2.0, threshold_fromP(pssm, p_cg/2.0, p_value), dm, output);
+	
+	if (strcasecmp("all", argv[4]) == 0) {
+		sprintf(of_name,"%s_all",argv[5]);
+		output = fopen(of_name,"w");
+		fprintf(output, "# Parameter List:\n");
+		fprintf(output, "# Input sequence: %s\n",argv[1]);
+		fprintf(output, "# Output path: %s\n",argv[5]);
+		fprintf(output, "# P value: %.3f\n",p_value);	
+		for(; pssm->next != NULL; pssm = pssm->next) {
+			kseq_rewind(seq);
+			lookahead_filter(5, seq, pssm, p_cg/2.0, threshold_fromP(pssm, p_cg/2.0, p_value), dm, output,1);
+		}
+		fclose(output);
+		
+	} else {
+		for(; pssm->next != NULL; pssm = pssm->next) {
+			if (strcasecmp(pssm->name, argv[4]) == 0)
+				break;
+		}
+		if (strcasecmp(pssm->name, argv[4]) != 0) {
+			printf("Can't find motif id %s", argv[3]);
+			return 0;
+		}
+		pssm2logodd(pssm, p_cg);
+		kseq_rewind(seq);
 
+		sprintf(of_name,"%s_%s",argv[5],pssm->name);
+		output = fopen(of_name,"w");
+		fprintf(output, "# Parameter List:\n");
+		fprintf(output, "# Input sequence: %s\n",argv[1]);
+		fprintf(output, "# Output path: %s\n",argv[5]);
+		fprintf(output, "# P value: %.3f\n",p_value);	
+		lookahead_filter(5, seq, pssm, p_cg/2.0, threshold_fromP(pssm, p_cg/2.0, p_value), dm, output, 0);
+		fclose(output);
+	}
 	kseq_destroy(seq);
 	gzclose(fp);
 	return 0;
@@ -92,7 +106,7 @@ float cg_percent(kseq_t* kseq)
 }
 
 
-void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, double tol, struct match_doublet* md, FILE *output)
+void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, double tol, struct match_doublet* md, FILE *output, int mini)
 {
 	int i, j;
 	int window_pos;
@@ -114,7 +128,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	assert(pm->kinds == KINDS);	/* Only for DNA */
 	/* Find the window */
 	if (q > pm->len) {
-		lookahead_filter(pm->len, kseq, pm, c_p, tol, md, output);
+		lookahead_filter(pm->len, kseq, pm, c_p, tol, md, output,mini);
 	}
 	sA = calloc(q, sizeof(uint_fast32_t));	
 	good = malloc(sizeof(double) * pm->len);
@@ -196,14 +210,23 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	tmp = 0;
 	tmp_max = tol - good[0];
 	
-	fprintf(output, "# CG percent: %.2f\n", c_p*2);
-	fprintf(output, "# tolerance: %.2f\n", tol);
-	fprintf(output, "# factor ID: %s\n", pm->name);	
-	fprintf(output, "sequence name\tsequence length\thits score(position)\tmax score(position)\n");
+
+	if (mini == 0) {
+		fprintf(output, "# CG percent: %.2f\n", c_p*2);
+		fprintf(output, "# tolerance: %.2f\n", tol);
+		fprintf(output, "# factor ID: %s\n", pm->name);
+		fprintf(output, "sequence name\tsequence length\thits score(position)\tmax score\tmax position\n");
+	} else {
+		fprintf(output, "\n\n# factor:%s\t tolerance %.2f\n", pm->name, tol);
+	}
+	
 	while ((bufsize = kseq_read(kseq)) >= 0) {
-		fprintf(output,"%s\t%d\t", kseq->name.s, bufsize);
+		if (mini == 0) 
+			fprintf(output,"%s\t%d\t", kseq->name.s, bufsize);
+			
 		if (bufsize < pm->len) {
-			fprintf(output, "-\t-\t-\n");
+			if (mini == 0)
+				fprintf(output, "*\t*\t*\n");
 			continue;
 		}
 
@@ -243,7 +266,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 						hit_max = tmp;
 						pos_max = i;
 					}
-					fprintf(output,"%.2f(%d),", tmp, i );
+					/* fprintf(output,"%.2f(%d),", tmp, i ); */
 					has_hit = 1;
 					/* md = md->next; */
 				}
@@ -251,15 +274,23 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 			}
 		}
 
-		free(seq_code_gc);		
-		if (has_hit)
-			fprintf(output, "\t%.2f(%d)\n",hit_max, pos_max);
-		else
-			fprintf(output, "-\t-\t-\n");
+		free(seq_code_gc);
+		if (mini == 0) {
+			if (has_hit)
+				fprintf(output, "\t%.2f\t%d\n",hit_max, pos_max);
+			else
+				fprintf(output, "*\t0\t*\n");
+		} else {
+			if (has_hit)
+				fprintf(output, "%.2f,", hit_max);
+			else
+				fprintf(output, "*,");
+		}
+		
 	}
-
-
 }
+
+
 
 int compare (const void * a, const void * b)
 {
