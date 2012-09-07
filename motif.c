@@ -171,7 +171,13 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 	int max, min;
 	int maxT, minV;
 	assert(pm->kinds > 0 && pm->len > 0);
-	int mat[pm->kinds][pm->len];
+
+	int **mat;
+	mat = (int **)malloc(sizeof(int *) * pm->kinds);
+	for (i = 0; i < 4; i++)
+		mat[i] = (int *)malloc(sizeof(int) * pm->len);
+
+	
 	int tmp;
 	/* printf("pm->len(thred) is %d\n", pm->len);	 */
 
@@ -293,7 +299,7 @@ void base2code(char *seq, short *code) {
 			code[i] = PWM_BASE_G;
 			break;
 		default:
-			code[i] = rand() % 4;
+			code[i] = PWM_BASE_N;
 			break;
 		}
 	}
@@ -370,9 +376,9 @@ int counts2Logfodds(struct pwm_matrix *pm_in, struct pssm_matrix *pm_out,  doubl
 	pm_out->kinds = pm_in->kinds;
 	pm_out->len = pm_in->len;
 
-	pm_out->score = (double **)malloc(sizeof(float *) * pm_out->kinds);
+	pm_out->score = (double **)malloc(sizeof(double *) * pm_out->kinds);
 	for (i = 0; i < 4; i++)
-		pm_out->score[i] = (double *)malloc(sizeof(float) * pm_out->len);
+		pm_out->score[i] = (double *)malloc(sizeof(double) * pm_out->len);
 	for (i = 0; i < pm_out->len; ++i) {
 		count = 0;
 		for (j = 0; j < pm_out->kinds; ++j)
