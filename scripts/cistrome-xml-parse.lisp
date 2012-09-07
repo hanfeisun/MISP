@@ -28,10 +28,10 @@
 
 (defun clear-all ()
   (progn
-    (clear-bas 'a)
     (clear-bas 't)
     (clear-bas 'c)
-    (clear-bas 'g)))
+    (clear-bas 'g)
+    (clear-bas 'a)))
 
 (defun push-all()
   (loop for i in (cddr *parsed*) do
@@ -45,8 +45,8 @@
 		      ;; (push-bas bas #'prob->count)
 		      (push-bas bas #'(lambda (x) x))
 		      ))
-		  (format-bas 'a)
 		  (format-bas 't)
+		  (format-bas 'c)
 		  (format-bas 'g)
-		  (format-bas 'c))))))
+		  (format-bas 'a))))))
 (push-all)

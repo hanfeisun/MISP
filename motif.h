@@ -2,10 +2,16 @@
 #define MIS_MOTIF_H
 #define PWM_MAX_COL 50
 #define PVAL_DP_MULTIPLIER 1000.0
-#define PWM_BASE_A 0
+/* #define PWM_BASE_A 0 */
+/* #define PWM_BASE_C 1 */
+/* #define PWM_BASE_G 2 */
+/* #define PWM_BASE_T 3 */
+
+#define PWM_BASE_T 0
 #define PWM_BASE_C 1
 #define PWM_BASE_G 2
-#define PWM_BASE_T 3
+#define PWM_BASE_A 3
+
 #define PWM_BASE_N 4
 #define PSUEDO_E 0.1
 #include "kseq.h"
@@ -41,6 +47,12 @@ struct match_doublet
 	struct match_doublet *next;
 };
 
+struct order_s {
+  int pos;
+  double good;
+};
+
+  
 int bg_counter(unsigned long *acnt, unsigned long *ccnt, unsigned long *other, char *seq);
 
 int pwm_reader(FILE *fp, struct pwm_matrix *pm);
@@ -60,9 +72,9 @@ inline int init_array(double *array, size_t size, double value);
 
 int counts2Logfodds(struct pwm_matrix *pm_in, struct pssm_matrix *pm_out,  double c_p, double ps);
 
-int compare (const void * a, const void * b);
+
 
 struct pssm_matrix *use_pssm(struct pssm_matrix *pm, char* name);
-	
+
 void base2code(char *seq, short *code);
 #endif

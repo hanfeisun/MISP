@@ -16,6 +16,21 @@ void expected_difference(struct pssm_matrix *pm, float c_p, double* ediff);
 void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, double tol, struct match_doublet *md, FILE *output, int mini);
 
 
+uint_fast32_t flip_reverse2(uint_fast32_t value)
+{
+	int i;
+	uint32_t new_value = 0;
+	for (i = 0; i < 16; i++)
+	{
+		new_value <<= 2;            
+		new_value |= (value & 0x3);
+		value >>= 2;
+	}
+	return ((~new_value)>>22) & 0x3ff; /* only ok when q is 5 (22 == 32 - 2*5)*/
+}
+
+
+
 int main(int argc, char *argv[])
 {
 	gzFile fp;
@@ -69,7 +84,6 @@ int main(int argc, char *argv[])
 			printf("Can't find motif id %s", argv[3]);
 			return 0;
 		}
-		pssm2logodd(pssm, p_cg);
 		kseq_rewind(seq);
 
 		sprintf(of_name,"%s_%s",argv[5],pssm->name);
@@ -110,8 +124,8 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 {
 	int i, j;
 	int window_pos;
-	int *order;
-	int *order_y;
+	struct order_s **order;
+	struct order_s **order_y;
 	double *good;
 	double *scores;
 	int pos_max;
@@ -124,17 +138,18 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	uint_fast32_t *sA;
 	uint_fast32_t code;
 	const uint_fast32_t size = 1 << (BITSHIFT * q);;
-
+	int compare (const void * a, const void * b);
+	
 	assert(pm->kinds == KINDS);	/* Only for DNA */
 	/* Find the window */
 	if (q > pm->len) {
-		lookahead_filter(pm->len, kseq, pm, c_p, tol, md, output,mini);
+		return lookahead_filter(pm->len, kseq, pm, c_p, tol, md, output,mini);
 	}
 	sA = calloc(q, sizeof(uint_fast32_t));	
 	good = malloc(sizeof(double) * pm->len);
 	tmp = 0;
 	expected_difference(pm, c_p, good);
-	for (i = 0; i < pm->len; ++i)
+	for (i = 0; i < q; ++i)
 		tmp += good[i];
 	tmp_max = tmp;
 	window_pos = 0;
@@ -149,20 +164,27 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	}
 
 	/* Arrange matrix indeces remained */
-	order = calloc(pm->len - q, sizeof(int));
-	for (i = 0; i < window_pos; ++i)
-		order[i] = i;
+	order = (struct order_s **) calloc(pm->len - q, sizeof(struct order_s*));
+	
+	for (i = 0; i < window_pos; ++i) {
+		order[i] = (struct order_s *) malloc(sizeof(struct order_s));
+		order[i]->pos = i;
+		order[i]->good = good[i];
+	}
 	for (i = window_pos + q; i < pm->len; ++i)
-		order[i-q] = i;
-	qsort(order, pm->len - q, sizeof(int), compare);
-
+	{
+		order[i-q] = (struct order_s *) malloc(sizeof(struct order_s));
+		order[i-q]->pos = i;
+		order[i-q]->good = good[i];
+	}
+	qsort(order, pm->len - q, sizeof(struct order_s *), compare);
 	/* Lookahead array for indeces outside the window */
 	good = malloc(sizeof(double) * (pm->len - q));
 	for (j = pm->len - q; j > 0; --j) {
 		tmp_max = LOGODD_MIN;
 		for (i = 0; i < pm->kinds; ++i) {
-			if (tmp_max < pm->score[i][order[j]])
-				tmp_max = pm->score[i][order[j]];
+			if (tmp_max < pm->score[i][order[j-1]->pos])
+				tmp_max = pm->score[i][order[j-1]->pos];
 		}
 		good[j-1] = good[j] + tmp_max;
 	}
@@ -217,7 +239,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		fprintf(output, "# factor ID: %s\n", pm->name);
 		fprintf(output, "sequence name\tsequence length\thits score(position)\tmax score\tmax position\n");
 	} else {
-		fprintf(output, "\n\n# factor:%s\t tolerance %.2f\n", pm->name, tol);
+		fprintf(output, "\n\n# factor:%s\ttolerance %.2f\n", pm->name, tol);
 	}
 	
 	while ((bufsize = kseq_read(kseq)) >= 0) {
@@ -250,13 +272,17 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 			++i;
 			code = ((code << BITSHIFT) + seq_code[window_pos + q -1]) & (size - 1);
 			/* printf("now code is %d\n",code); */
-			if (scores[code] >= tmp_max) {
-				tmp = scores[code];
+
+			
+			if ((tmp = scores[code]) >= tmp_max) { /* tmp max is the lower bound */
 				order_y = order;
 				for (j = 0; j < pm->len - q; ++j) {
 					if (tmp + good[j] < tol)
 						break;
-					tmp += pm->score[seq_code[*order_y]][*order_y];
+					if (seq_code[order_y[0]->pos] == 4) /* For masked */
+						break;
+					
+					tmp += pm->score[seq_code[order_y[0]->pos]][order_y[0]->pos];
 					++order_y;
 
 				}
@@ -266,12 +292,41 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 						hit_max = tmp;
 						pos_max = i;
 					}
-					/* fprintf(output,"%.2f(%d),", tmp, i ); */
+
 					has_hit = 1;
+					/* printf("%.2f(%d),",tmp, i); */
+					/* fprintf(output, "%.2f(%d),",tmp, i); */
 					/* md = md->next; */
 				}
 
 			}
+
+
+			if ((tmp = scores[flip_reverse2(code)]) >= tmp_max) { /* reverse strand */
+				if (i < pm->len - window_pos - q)
+					continue;
+				order_y = order;
+				for (j = 0; j < pm->len - q; ++j) {
+					if (tmp + good[j] < tol)
+						break;
+					if (seq_code[order_y[0]->pos] == 4) /* for masked Basepair */
+						break;
+					tmp += pm->score[3 - seq_code[order_y[0]->pos]][pm->len - order_y[0]->pos];
+					++order_y;
+				}
+				if (tmp >= tol) {
+					tmp -= tol;
+					if (tmp > hit_max) {
+						hit_max = tmp;
+						pos_max = -i;
+					}
+					has_hit = 1;
+					/* printf("%.2f(~%d),",tmp, i); */
+					/* fprintf(output, "%.2f(~%d),",tmp, i); */
+				}
+			}
+				
+				
 		}
 
 		free(seq_code_gc);
@@ -284,7 +339,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 			if (has_hit)
 				fprintf(output, "%.2f,", hit_max);
 			else
-				fprintf(output, "*,");
+				fprintf(output, "0,");
 		}
 		
 	}
@@ -294,7 +349,10 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 
 int compare (const void * a, const void * b)
 {
-	return (*(int*)a - *(int*)b);
+	if (((*(const struct order_s **)a)->good - (*(const struct order_s **)b)->good) > 0)
+		return 1;
+	else
+		return -1;
 }
 
 void expected_difference(struct pssm_matrix *pm, float c_p, double* ediff)
