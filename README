@@ -23,16 +23,15 @@ Input
 4. motif-id: check `database/cistrome.db` and `database/cistrome.xml` to get this ID
 5. output-prefix: the prefix of the output file name
 
-
-
-
-
 Test
 ====
 
 Enter the directory of mis, and then type in:
     ./mis test.seq database/cistrome.db 0.001 all test
 
+or:
+    ./mis test.seq database/cistrome.db 0.001 EN_0055 test
+    
 Output
 ======
 
