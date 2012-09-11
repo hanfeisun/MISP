@@ -331,13 +331,18 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 
 		free(seq_code_gc);
 		if (mini == 0) {
-			if (has_hit)
-				fprintf(output, "\t%.2f\t%d\n",hit_max, pos_max);
+			if (has_hit){
+				char temp_char;
+				temp_char = *(kseq->seq.s+pos_max+pm->len);
+				*(kseq->seq.s+pos_max+pm->len) = '\0';
+				fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s + pos_max - 1);
+				*(kseq->seq.s+pos_max+pm->len) = temp_char;
+			}
 			else
 				fprintf(output, "*\t0\t*\n");
 		} else {
 			if (has_hit)
-				fprintf(output, "%.2f,", hit_max);
+				fprintf(output, "%.2f(%d),", hit_max, pos_max);
 			else
 				fprintf(output, "0,");
 		}
