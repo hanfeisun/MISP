@@ -64,16 +64,16 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 		}
 		
 		if (pch == NULL) {
-			if (i == -1) {}
+			if (i == -1) {} /* before reading motif */
 			else if (i ==0 ) {
-				pm->len = j-1;
+				pm->len = j;
 				j = 0;
 				i++;
 			}
 			else if (i == pm->kinds -1) {
 				i = -1;
 				j = 0;
-				pm->next = malloc(sizeof(struct pssm_matrix));
+				pm->next = malloc(sizeof(struct pssm_matrix)); /* init next motif */
 				pm = pm->next;
 				pm->kinds = 4;
 				pm->len = 0;
@@ -81,7 +81,7 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 				for (k = 0; k < 4; k++)
 					pm->score[k] = (double *)malloc(sizeof(double) * PWM_MAX_COL);
 			} else {
-				assert(pm->len == j-1);
+				assert(pm->len == j);
 				j = 0;
 				i++;
 			}
