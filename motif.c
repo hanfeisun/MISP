@@ -92,8 +92,8 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 		if (pch != NULL) {
 			if (i == -1) {
 				if (strncmp(pch,"\n", 1) != 0) {
-					pm->name = (char *)malloc(sizeof(char) * strlen(pch));
-					strncpy(pm->name, pch, strlen(pch)-1);
+					pm->name = (char *)malloc(strlen(pch) + 1);
+					strcpy(pm->name, pch);
 					i = 0;
 				} 
 				read = getline (&str, &len, fp);
