@@ -77,10 +77,10 @@ int main(int argc, char *argv[])
 		
 	} else {
 		for(; pssm->next != NULL; pssm = pssm->next) {
-			if (strcasecmp(pssm->name, argv[4]) == 0)
+			if (strncasecmp(pssm->name, argv[4], strlen(pssm->name) - 1) == 0)
 				break;
 		}
-		if (strcasecmp(pssm->name, argv[4]) != 0) {
+		if (strncasecmp(pssm->name, argv[4], strlen(pssm->name) -1) != 0) {
 			printf("Can't find motif id %s", argv[3]);
 			return 0;
 		}
