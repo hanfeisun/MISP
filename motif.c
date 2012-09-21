@@ -36,6 +36,8 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 	int i;
 	int j;
 	int k;
+	int first;
+
 	size_t len = 0;
 	char *str = NULL;
 	char *pch = NULL;
@@ -44,7 +46,7 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 		exit(-1);
 	}
 	
-
+	first = 1;
 	pm->kinds = 4;
 	pm->len = 0;
 	pm->score = (double **)malloc(sizeof(double *) * pm->kinds);
@@ -73,13 +75,6 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 			else if (i == pm->kinds -1) {
 				i = -1;
 				j = 0;
-				pm->next = malloc(sizeof(struct pssm_matrix)); /* init next motif */
-				pm = pm->next;
-				pm->kinds = 4;
-				pm->len = 0;
-				pm->score = (double **)malloc(sizeof(double *) * pm->kinds);
-				for (k = 0; k < 4; k++)
-					pm->score[k] = (double *)malloc(sizeof(double) * PWM_MAX_COL);
 			} else {
 				assert(pm->len == j);
 				j = 0;
@@ -91,10 +86,22 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 		}
 		if (pch != NULL) {
 			if (i == -1) {
-				if (strncmp(pch,"\n", 1) != 0) {
+				if (strncmp(pch,"\n", 1) != 0) { /* If it's a '\n', skip malloc new space until new line read */
+					if (!first) {
+						pm->next = malloc(sizeof(struct pssm_matrix)); /* init next motif */
+						pm = pm->next;
+						pm->kinds = 4;
+						pm->len = 0;
+						pm->score = (double **)malloc(sizeof(double *) * pm->kinds);
+					}
+
+					for (k = 0; k < 4; k++)
+						pm->score[k] = (double *)malloc(sizeof(double) * PWM_MAX_COL);
+
 					pm->name = (char *)malloc(strlen(pch) + 1);
 					strcpy(pm->name, pch);
 					i = 0;
+					first = 0;
 				} 
 				read = getline (&str, &len, fp);
 			} else {
