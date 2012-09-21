@@ -333,10 +333,19 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		if (mini == 0) {
 			if (has_hit){
 				char temp_char;
-				temp_char = *(kseq->seq.s+pos_max+pm->len);
-				*(kseq->seq.s+pos_max+pm->len) = '\0';
-				fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s + pos_max - 1);
-				*(kseq->seq.s+pos_max+pm->len) = temp_char;
+				if (pos_max>0) {
+					temp_char = *(kseq->seq.s+pos_max+pm->len);
+					*(kseq->seq.s+pos_max+pm->len) = '\0';
+					fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s + pos_max - 1);
+					*(kseq->seq.s+pos_max+pm->len) = temp_char;
+				}
+				else {
+					temp_char = *(kseq->seq.s - pos_max);
+					*(kseq->seq.s - pos_max + pm->len) = '\0';
+					/* printf("\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s - pos_max - 1); */
+					fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s - pos_max - 1);
+					*(kseq->seq.s - pos_max + pm->len) = temp_char;
+				}
 			}
 			else
 				fprintf(output, "*\t0\t*\n");
