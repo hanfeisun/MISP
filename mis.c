@@ -80,12 +80,13 @@ int main(int argc, char *argv[])
 			if (strncasecmp(pssm->name, argv[4], strlen(pssm->name) - 1) == 0)
 				break;
 		}
+
 		if (strncasecmp(pssm->name, argv[4], strlen(pssm->name) -1) != 0) {
 			printf("Can't find motif id %s", argv[3]);
 			return 0;
 		}
 		kseq_rewind(seq);
-
+		pssm->name[strlen(pssm->name) - 1] = '\0';
 		sprintf(of_name,"%s_%s",argv[5],pssm->name);
 		output = fopen(of_name,"w");
 		fprintf(output, "# Parameter List:\n");
@@ -267,20 +268,26 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		hit_max = -10;
 		has_hit = 0;
 		pos_max = -1;
-
-		for(i = 0; seq_code[pm->len - 1]!=-1; ++seq_code) {
+		int positive_end = 0;
+		int negative_start = 0;
+		for(i = 0; seq_code[window_pos + q - 1]!=-1; ++seq_code) {
 			++i;
 			code = ((code << BITSHIFT) + seq_code[window_pos + q -1]) & (size - 1);
 			/* printf("now code is %d\n",code); */
-
+			if (seq_code[(pm->len)-1] == -1) 
+				positive_end = 1;
 			
-			if ((tmp = scores[code]) >= tmp_max) { /* tmp max is the lower bound */
+			
+			if (!positive_end && ((tmp = scores[code]) >= tmp_max))  { /* tmp max is the lower bound */
 				order_y = order;
 				for (j = 0; j < pm->len - q; ++j) {
 					if (tmp + good[j] < tol)
 						break;
-					if (seq_code[order_y[0]->pos] == 4) /* For masked */
+					if (seq_code[order_y[0]->pos] == 4) {
+						tmp = tol - 1; /* abandon this sequence if N exists */
+					  /* For masked */
 						break;
+					}
 					
 					tmp += pm->score[seq_code[order_y[0]->pos]][order_y[0]->pos];
 					++order_y;
@@ -292,26 +299,26 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 						hit_max = tmp;
 						pos_max = i;
 					}
-
 					has_hit = 1;
-					/* printf("%.2f(%d),",tmp, i); */
-					/* fprintf(output, "%.2f(%d),",tmp, i); */
-					/* md = md->next; */
+
 				}
 
 			}
+			if (i >= pm->len -q - 1)
+				negative_start = 1;
 
-
-			if ((tmp = scores[flip_reverse2(code)]) >= tmp_max) { /* reverse strand */
+			if (negative_start && ((tmp = scores[flip_reverse2(code)]) >= tmp_max)) { /* reverse strand */
 				if (i < pm->len - window_pos - q)
 					continue;
 				order_y = order;
 				for (j = 0; j < pm->len - q; ++j) {
 					if (tmp + good[j] < tol)
 						break;
-					if (seq_code[order_y[0]->pos] == 4) /* for masked Basepair */
+					if (seq_code[q - order_y[0]->pos - 1] == 4) { /* for masked Basepair */
+						tmp = tol - 1;
 						break;
-					tmp += pm->score[3 - seq_code[order_y[0]->pos]][pm->len - order_y[0]->pos];
+					}
+					tmp += pm->score[3 - seq_code[q - order_y[0]->pos - 1]][order_y[0]->pos];
 					++order_y;
 				}
 				if (tmp >= tol) {
@@ -321,8 +328,6 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 						pos_max = -i;
 					}
 					has_hit = 1;
-					/* printf("%.2f(~%d),",tmp, i); */
-					/* fprintf(output, "%.2f(~%d),",tmp, i); */
 				}
 			}
 				
@@ -340,11 +345,11 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 					*(kseq->seq.s+pos_max+pm->len) = temp_char;
 				}
 				else {
-					temp_char = *(kseq->seq.s - pos_max);
-					*(kseq->seq.s - pos_max + pm->len) = '\0';
+					temp_char = *(kseq->seq.s - pos_max + q - 1);
+					*(kseq->seq.s - pos_max + q - 1) = '\0';
 					/* printf("\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s - pos_max - 1); */
-					fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s - pos_max - 1);
-					*(kseq->seq.s - pos_max + pm->len) = temp_char;
+					fprintf(output, "\t%.2f\t-%d\t%s\n",hit_max, -pos_max + q - 1, kseq->seq.s - pos_max - pm->len + q - 2);
+					*(kseq->seq.s - pos_max + q - 1) = temp_char;
 				}
 			}
 			else
