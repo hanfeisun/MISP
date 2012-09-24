@@ -317,12 +317,10 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 				}
 
 			}
-			if (i >= pm->len - q - 1)
+			if (i >= pm->len - q)
 				negative_start = 1;
-
+			/* pm->len >= window_pos + q */
 			if (negative_start && ((tmp = scores[flip_reverse2(code)]) >= tmp_max)) { /* reverse strand */
-				if (i < pm->len - window_pos - q)
-					continue;
 				order_y = order;
 				for (j = 0; j < pm->len - q; ++j) {
 					if (tmp + good[j] < tol)
@@ -331,7 +329,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 						tmp = tol - 1;
 						break;
 					}
-					tmp += pm->score[3 - seq_code[q - order_y[0]->pos]][order_y[0]->pos - 1];
+					tmp += pm->score[3 - seq_code[q + window_pos - order_y[0]->pos]][order_y[0]->pos - 1];
 					++order_y;
 				}
 				if (tmp >= tol) {
