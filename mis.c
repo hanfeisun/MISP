@@ -165,17 +165,18 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	}
 
 	/* Arrange matrix indeces remained */
+	/* NOTICE: start from 1 !!*/
 	order = (struct order_s **) calloc(pm->len - q, sizeof(struct order_s*));
 	
 	for (i = 0; i < window_pos; ++i) {
 		order[i] = (struct order_s *) malloc(sizeof(struct order_s));
-		order[i]->pos = i;
+		order[i]->pos = i+1;
 		order[i]->good = good[i];
 	}
 	for (i = window_pos + q; i < pm->len; ++i)
 	{
 		order[i-q] = (struct order_s *) malloc(sizeof(struct order_s));
-		order[i-q]->pos = i;
+		order[i-q]->pos = i+1;
 		order[i-q]->good = good[i];
 	}
 	qsort(order, pm->len - q, sizeof(struct order_s *), compare);
@@ -260,8 +261,10 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	
 		code = 0;
 
-		
+		int N_max_in_window=0;
 		for (i = window_pos; i < window_pos + q - 1; ++i) {
+			if (seq_code[i] == 4)
+				N_max_in_window = i;
 			code = (code << BITSHIFT) + seq_code[i];
 		}
 
@@ -273,6 +276,16 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		for(i = 0; seq_code[window_pos + q - 1]!=-1; ++i && ++seq_code) {
 			/* i starts from 0, but pos_max also starts from 0 */
 			code = ((code << BITSHIFT) + seq_code[window_pos + q -1]) & (size - 1);
+			if (N_max_in_window != 0) {
+				N_max_in_window -= 1; /* skip  */
+				break;
+			}
+			if (seq_code[window_pos + q -1] == 4) {
+				N_max_in_window = q - 1;
+				break;
+			}
+			
+			  
 			/* printf("now code is %d\n",code); */
 			if (seq_code[(pm->len)-1] == -1) 
 				positive_end = 1;
@@ -283,13 +296,13 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 				for (j = 0; j < pm->len - q; ++j) {
 					if (tmp + good[j] < tol)
 						break;
-					if (seq_code[order_y[0]->pos] == 4) {
+					if (seq_code[order_y[0]->pos - 1] == 4) {
 						tmp = tol - 1; /* abandon this sequence if N exists */
 					  /* For masked */
 						break;
 					}
 					
-					tmp += pm->score[seq_code[order_y[0]->pos]][order_y[0]->pos];
+					tmp += pm->score[seq_code[order_y[0]->pos - 1]][order_y[0]->pos-1];
 					++order_y;
 
 				}
@@ -318,7 +331,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 						tmp = tol - 1;
 						break;
 					}
-					tmp += pm->score[3 - seq_code[q - order_y[0]->pos]][order_y[0]->pos];
+					tmp += pm->score[3 - seq_code[q - order_y[0]->pos]][order_y[0]->pos - 1];
 					++order_y;
 				}
 				if (tmp >= tol) {
