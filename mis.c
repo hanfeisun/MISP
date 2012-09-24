@@ -270,8 +270,8 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		pos_max = -1;
 		int positive_end = 0;
 		int negative_start = 0;
-		for(i = 0; seq_code[window_pos + q - 1]!=-1; ++seq_code) {
-			++i;
+		for(i = 0; seq_code[window_pos + q - 1]!=-1; ++i && ++seq_code) {
+			/* i starts from 0, but pos_max also starts from 0 */
 			code = ((code << BITSHIFT) + seq_code[window_pos + q -1]) & (size - 1);
 			/* printf("now code is %d\n",code); */
 			if (seq_code[(pm->len)-1] == -1) 
@@ -304,7 +304,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 				}
 
 			}
-			if (i >= pm->len -q - 1)
+			if (i >= pm->len - q - 1)
 				negative_start = 1;
 
 			if (negative_start && ((tmp = scores[flip_reverse2(code)]) >= tmp_max)) { /* reverse strand */
@@ -314,11 +314,11 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 				for (j = 0; j < pm->len - q; ++j) {
 					if (tmp + good[j] < tol)
 						break;
-					if (seq_code[q - order_y[0]->pos - 1] == 4) { /* for masked Basepair */
+					if (seq_code[q - order_y[0]->pos ] == 4) { /* for masked Basepair */
 						tmp = tol - 1;
 						break;
 					}
-					tmp += pm->score[3 - seq_code[q - order_y[0]->pos - 1]][order_y[0]->pos];
+					tmp += pm->score[3 - seq_code[q - order_y[0]->pos]][order_y[0]->pos];
 					++order_y;
 				}
 				if (tmp >= tol) {
@@ -336,21 +336,21 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 
 		free(seq_code_gc);
 		if (mini == 0) {
-			if (has_hit){
+		if (has_hit){
 				char temp_char;
-				if (pos_max>0) {
-					temp_char = *(kseq->seq.s+pos_max+pm->len);
-					*(kseq->seq.s+pos_max+pm->len) = '\0';
-					fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s + pos_max - 1);
-					*(kseq->seq.s+pos_max+pm->len) = temp_char;
-				}
-				else {
-					temp_char = *(kseq->seq.s - pos_max + q - 1);
-					*(kseq->seq.s - pos_max + q - 1) = '\0';
-					/* printf("\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s - pos_max - 1); */
-					fprintf(output, "\t%.2f\t-%d\t%s\n",hit_max, -pos_max + q - 1, kseq->seq.s - pos_max - pm->len + q - 2);
-					*(kseq->seq.s - pos_max + q - 1) = temp_char;
-				}
+				int e_idx, s_idx; /* index of end and start position */
+				if (pos_max>0)
+					e_idx = pos_max + pm->len;
+				else
+					e_idx = - pos_max + q + window_pos;
+				s_idx = e_idx - pm->len;
+				temp_char = *(kseq->seq.s + e_idx);
+				*(kseq->seq.s + e_idx) = '\0';
+				if (pos_max>0) 
+					fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s + s_idx);
+				else 
+					fprintf(output, "\t%.2f\t-%d\t%s\n",hit_max, e_idx , kseq->seq.s + s_idx);
+				*(kseq->seq.s + e_idx) = temp_char;
 			}
 			else
 				fprintf(output, "*\t0\t*\n");
