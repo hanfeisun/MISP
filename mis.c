@@ -239,7 +239,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		fprintf(output, "# CG percent: %.2f\n", c_p*2);
 		fprintf(output, "# tolerance: %.2f\n", tol);
 		fprintf(output, "# factor ID: %s\n", pm->name);
-		fprintf(output, "sequence name\tsequence length\thits score\thits position\tsequence\n");
+		fprintf(output, "sequence_name\tsequence_length\thits_score\thits_position\tsequence\n");
 	} else {
 		fprintf(output, "\n\n# factor:%s# tolerance %.2f\n", pm->name, tol);
 	}
