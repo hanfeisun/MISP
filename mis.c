@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 	FILE* pssm_fp;
 	FILE* output;
 	struct pssm_matrix *pssm;
-	char of_name[50];
+	char of_name[500];
 	struct match_doublet *dm;
 	float p_cg;
 	float p_value;
@@ -100,7 +100,6 @@ int main(int argc, char *argv[])
 	gzclose(fp);
 	return 0;
 }
-
 float cg_percent(kseq_t* kseq)
 {
 	int l;
