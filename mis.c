@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 	FILE* pssm_fp;
 	FILE* output;
 	struct pssm_matrix *pssm;
-	char of_name[50];
+	char of_name[2000];
 	struct match_doublet *dm;
 	float p_cg;
 	float p_value;
@@ -77,15 +77,16 @@ int main(int argc, char *argv[])
 		
 	} else {
 		for(; pssm->next != NULL; pssm = pssm->next) {
-			if (strcasecmp(pssm->name, argv[4]) == 0)
+			if (strncasecmp(pssm->name, argv[4], strlen(pssm->name) - 1) == 0)
 				break;
 		}
-		if (strcasecmp(pssm->name, argv[4]) != 0) {
+
+		if (strncasecmp(pssm->name, argv[4], strlen(pssm->name) -1) != 0) {
 			printf("Can't find motif id %s", argv[3]);
 			return 0;
 		}
 		kseq_rewind(seq);
-
+		pssm->name[strlen(pssm->name) - 1] = '\0';
 		sprintf(of_name,"%s_%s",argv[5],pssm->name);
 		output = fopen(of_name,"w");
 		fprintf(output, "# Parameter List:\n");
@@ -99,7 +100,6 @@ int main(int argc, char *argv[])
 	gzclose(fp);
 	return 0;
 }
-
 float cg_percent(kseq_t* kseq)
 {
 	int l;
@@ -164,17 +164,18 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	}
 
 	/* Arrange matrix indeces remained */
+	/* NOTICE: start from 1 !!*/
 	order = (struct order_s **) calloc(pm->len - q, sizeof(struct order_s*));
 	
 	for (i = 0; i < window_pos; ++i) {
 		order[i] = (struct order_s *) malloc(sizeof(struct order_s));
-		order[i]->pos = i;
+		order[i]->pos = i+1;
 		order[i]->good = good[i];
 	}
 	for (i = window_pos + q; i < pm->len; ++i)
 	{
 		order[i-q] = (struct order_s *) malloc(sizeof(struct order_s));
-		order[i-q]->pos = i;
+		order[i-q]->pos = i+1;
 		order[i-q]->good = good[i];
 	}
 	qsort(order, pm->len - q, sizeof(struct order_s *), compare);
@@ -237,7 +238,7 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		fprintf(output, "# CG percent: %.2f\n", c_p*2);
 		fprintf(output, "# tolerance: %.2f\n", tol);
 		fprintf(output, "# factor ID: %s\n", pm->name);
-		fprintf(output, "sequence name\tsequence length\thits score\thits position\tsequence\n");
+		fprintf(output, "sequence_name\tsequence_length\thits_score\thits_position\tsequence\n");
 	} else {
 		fprintf(output, "\n\n# factor:%s# tolerance %.2f\n", pm->name, tol);
 	}
@@ -259,30 +260,48 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 	
 		code = 0;
 
-		
+		int N_max_in_window=0;
 		for (i = window_pos; i < window_pos + q - 1; ++i) {
+			if (seq_code[i] == 4)
+				N_max_in_window = i;
 			code = (code << BITSHIFT) + seq_code[i];
 		}
 
 		hit_max = -10;
 		has_hit = 0;
 		pos_max = -1;
-
-		for(i = 0; seq_code[pm->len - 1]!=-1; ++seq_code) {
-			++i;
+		int positive_end = 0;
+		int negative_start = 0;
+		for(i = 0; seq_code[window_pos + q - 1]!=-1; ++i && ++seq_code) {
+			/* i starts from 0, but pos_max also starts from 0 */
 			code = ((code << BITSHIFT) + seq_code[window_pos + q -1]) & (size - 1);
-			/* printf("now code is %d\n",code); */
-
+			if (N_max_in_window != 0) {
+				N_max_in_window -= 1; /* skip  */
+				break;
+			}
+			if (seq_code[window_pos + q -1] == 4) {
+				N_max_in_window = q - 1;
+				break;
+			}
 			
-			if ((tmp = scores[code]) >= tmp_max) { /* tmp max is the lower bound */
+			  
+			/* printf("now code is %d\n",code); */
+			if (seq_code[(pm->len)-1] == -1) 
+				positive_end = 1;
+			
+			
+			if (!positive_end && ((tmp = scores[code]) >= tmp_max))  { /* tmp max is the lower bound */
 				order_y = order;
 				for (j = 0; j < pm->len - q; ++j) {
 					if (tmp + good[j] < tol)
 						break;
-					if (seq_code[order_y[0]->pos] == 4) /* For masked */
+					if (seq_code[order_y[0]->pos - 1] == 4) {
+						tmp = tol - 1; /* abandon this sequence if N exists */
+					  /* For masked */
 						break;
+					}
 					
-					tmp += pm->score[seq_code[order_y[0]->pos]][order_y[0]->pos];
+					tmp += pm->score[seq_code[order_y[0]->pos - 1]][order_y[0]->pos-1];
 					++order_y;
 
 				}
@@ -292,26 +311,24 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 						hit_max = tmp;
 						pos_max = i;
 					}
-
 					has_hit = 1;
-					/* printf("%.2f(%d),",tmp, i); */
-					/* fprintf(output, "%.2f(%d),",tmp, i); */
-					/* md = md->next; */
+
 				}
 
 			}
-
-
-			if ((tmp = scores[flip_reverse2(code)]) >= tmp_max) { /* reverse strand */
-				if (i < pm->len - window_pos - q)
-					continue;
+			if (i >= pm->len - q)
+				negative_start = 1;
+			/* pm->len >= window_pos + q */
+			if (negative_start && ((tmp = scores[flip_reverse2(code)]) >= tmp_max)) { /* reverse strand */
 				order_y = order;
 				for (j = 0; j < pm->len - q; ++j) {
 					if (tmp + good[j] < tol)
 						break;
-					if (seq_code[order_y[0]->pos] == 4) /* for masked Basepair */
+					if (seq_code[q - order_y[0]->pos ] == 4) { /* for masked Basepair */
+						tmp = tol - 1;
 						break;
-					tmp += pm->score[3 - seq_code[order_y[0]->pos]][pm->len - order_y[0]->pos];
+					}
+					tmp += pm->score[3 - seq_code[q + window_pos - order_y[0]->pos]][order_y[0]->pos - 1];
 					++order_y;
 				}
 				if (tmp >= tol) {
@@ -321,8 +338,6 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 						pos_max = -i;
 					}
 					has_hit = 1;
-					/* printf("%.2f(~%d),",tmp, i); */
-					/* fprintf(output, "%.2f(~%d),",tmp, i); */
 				}
 			}
 				
@@ -331,12 +346,21 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 
 		free(seq_code_gc);
 		if (mini == 0) {
-			if (has_hit){
+		if (has_hit){
 				char temp_char;
-				temp_char = *(kseq->seq.s+pos_max+pm->len);
-				*(kseq->seq.s+pos_max+pm->len) = '\0';
-				fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s + pos_max - 1);
-				*(kseq->seq.s+pos_max+pm->len) = temp_char;
+				int e_idx, s_idx; /* index of end and start position */
+				if (pos_max>0)
+					e_idx = pos_max + pm->len;
+				else
+					e_idx = - pos_max + q + window_pos;
+				s_idx = e_idx - pm->len;
+				temp_char = *(kseq->seq.s + e_idx);
+				*(kseq->seq.s + e_idx) = '\0';
+				if (pos_max>0) 
+					fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s + s_idx);
+				else 
+					fprintf(output, "\t%.2f\t-%d\t%s\n",hit_max, e_idx , kseq->seq.s + s_idx);
+				*(kseq->seq.s + e_idx) = temp_char;
 			}
 			else
 				fprintf(output, "*\t0\t*\n");
