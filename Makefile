@@ -1,10 +1,11 @@
+
 SOURCES = motif.c mis.c
-CC = gcc
+CC = cc
 LIB = -lz -lm
 
 
 all: kseq.h mis.c motif.c 
-	$(CC) -Wall -O3 -g $(SOURCES) -o mis $(LIB)
+	$(CC) -Wall -g $(SOURCES) -o mis $(LIB)
 
 dbg: kseq.h mis.c motif.c
 	$(CC) -g $(SOURCES) -o mis $(LIB)
