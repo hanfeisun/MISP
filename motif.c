@@ -226,7 +226,6 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 	double table1[tmp+1];
 	int r,s;
 	double sum;
-	
 	init_array(table0, tmp+1, 0.0);
 	init_array(table1, tmp+1, 0.0);	
 
@@ -281,7 +280,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 }
 
 
-inline int init_array(double *array, size_t size, double value)
+int init_array(double *array, size_t size, double value)
 {
 	size_t i;
 	for (i = 0; i < size; ++i)

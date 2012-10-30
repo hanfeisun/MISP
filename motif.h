@@ -68,7 +68,7 @@ void display_pssm(struct pssm_matrix *pm);
 /* Calculates a threshold for a scoring matrix from a given p value */
 double threshold_fromP (struct pssm_matrix *pm, double c_p, double p);
 
-inline int init_array(double *array, size_t size, double value);
+int init_array(double *array, size_t size, double value);
 
 int counts2Logfodds(struct pwm_matrix *pm_in, struct pssm_matrix *pm_out,  double c_p, double ps);
 
