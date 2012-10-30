@@ -2,6 +2,17 @@
  mis: a fast Motif Scanner
 ===========================
 
+Install
+=======
+
+
+Type in this command under the project's directory to install:
+    make
+
+To see the test result, type in:
+    make test
+
+
 Usage
 =====
 
@@ -56,3 +67,9 @@ For all motifs:
 Different motifs are separated by `\n` and different intervals are separeted by `,`.
 The value is hits score and the value in the round bracket is his position.
 
+Formatter
+=========
+
+Try this command for the result of all motifs to get a tabular format:
+
+awk -f mis_formatter.awk <result_of_mis>
