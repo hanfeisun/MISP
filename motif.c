@@ -33,14 +33,14 @@ int bg_counter(unsigned long *acnt, unsigned long *ccnt, unsigned long *other, c
 void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 /* allocate the memory for pm before use this function */
 {
-	int read;
+	char * read;
 	int i;
 	int j;
 	int k;
 	int first;
 
-	size_t len = 0;
-	char *str = NULL;
+	int len = 1000;
+	char str[1000];
 	char *pch = NULL;
 	if (fp == NULL){
 		perror("Error opening the pwm file");
@@ -55,10 +55,10 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 		pm->score[i] = (double *)malloc(sizeof(double) * PWM_MAX_COL);
 
 	
-	read = getline (&str, &len, fp);
+	read = fgets (str, len, fp);
 	i = -1;
 	j = 0;
-	while (read != -1 && i <= pm->kinds) {
+	while (read != NULL && i <= pm->kinds) {
 		assert(j < PWM_MAX_COL);
 		if (j == 0) {
 			pch = strtok(str, " ");
@@ -82,7 +82,7 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 				i++;
 			}
 			
-			read = getline (&str, &len, fp);
+			read = fgets (str, len, fp);
 			continue;
 		}
 		if (pch != NULL) {
@@ -104,7 +104,7 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 					i = 0;
 					first = 0;
 				} 
-				read = getline (&str, &len, fp);
+				read = fgets (str, len, fp);
 			} else {
 				pm->score[i][j++] = atof(pch);
 			}
@@ -319,11 +319,11 @@ void base2code(char *seq, short *code) {
 int pwm_reader(FILE *fp, struct pwm_matrix *pm)
 /* allocate the memory for pm before use this function */
 {
-	int read;
+	char * read;
 	int i;
 	int j;
-	size_t len = 0;
-	char *str = NULL;
+	int len = 1000;
+	char str[1000];
 	char *pch = NULL;
 	if (fp == NULL){
 		perror("Error opening the pwm file");
@@ -335,12 +335,12 @@ int pwm_reader(FILE *fp, struct pwm_matrix *pm)
 	for (i = 0; i < 4; i++)
 		pm->weight[i] = (int *)malloc(sizeof(int) * PWM_MAX_COL);
 	
-	read = getline (&str, &len, fp);
+	read = fgets (str, len, fp);
 	/* read == -1: error or EOF*/
 	i = 0;
 	j = 0;
 
-	while(read != -1 && i < 4) {
+	while(read != NULL && i < 4) {
 		assert(j < PWM_MAX_COL);
 
 		if (j == 0) 
@@ -361,7 +361,7 @@ int pwm_reader(FILE *fp, struct pwm_matrix *pm)
 			else
 				pm->len = j;
 			j = 0;	/* at the end of a line */
-			read = getline (&str, &len, fp);
+			read = fgets (str, len, fp);
 		} else {	/* pch has value */
 			assert((pm->weight[i][j++] = atoi(pch)) >= 0);
 		}
