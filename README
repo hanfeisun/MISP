@@ -1,5 +1,5 @@
 ===========================
- mis: a fast Motif Scanner
+ misp: a fast Motif Scanner
 ===========================
 
 Install
@@ -17,10 +17,10 @@ Usage
 =====
 
 For one motif:
-    mis <in.seq> <in.db> <p-value> <motif-id> <output-prefix>
+    misp <in.seq> <in.db> <p-value> <motif-id> <output-prefix>
 
 For all motifs:
-    mis <in.seq> <in.db> <p-value> all <output-prefix>
+    misp <in.seq> <in.db> <p-value> all <output-prefix>
     
 The output file will be named `<output-prefix>_<motif-id>` or `<output-prefix>_all`
 
@@ -37,11 +37,11 @@ Input
 Test
 ====
 
-Enter the directory of mis, and then type in:
-    ./mis test.seq database/cistrome.db 0.001 all test
+Enter the directory of misp, and then type in:
+    ./misp test.seq database/cistrome.db 0.001 all test
 
 or:
-    ./mis test.seq database/cistrome.db 0.001 EN_0055 test
+    ./misp test.seq database/cistrome.db 0.001 EN_0055 test
     
 Output
 ======
