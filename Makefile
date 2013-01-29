@@ -21,5 +21,5 @@ check-syntax:
 test:
 	make all
 	time ./misp test.seq database/cistrome.db 0.001 all test
-	time ./misp test.seq database/cistrome.db 0.001 EN0055 test
+time ./misp test.seq database/cistrome.db 0.001 EN0055 test
 	time ./misp test2.seq database/cistrome.db 0.001 all test2
