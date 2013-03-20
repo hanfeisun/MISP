@@ -50,7 +50,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Usage: %s <in.seq> <in.db> <p-value> <motif-id> <output-prefix>\n", argv[0]);
 		return 1;
 	}
-	
+
+
 	pssm_fp = fopen(argv[2],"r");
 	pssm_reader(pssm_fp, pssm);
 	fclose(pssm_fp);
@@ -82,7 +83,7 @@ int main(int argc, char *argv[])
 		}
 
 		if (strncasecmp(pssm->name, argv[4], strlen(pssm->name) -1) != 0) {
-			printf("Can't find motif id %s", argv[3]);
+			printf("Can't find motif id %s", argv[4]);
 			return 0;
 		}
 		kseq_rewind(seq);
