@@ -350,15 +350,15 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 		if (has_hit){
 				char temp_char;
 				int e_idx, s_idx; /* index of end and start position */
-				if (pos_max>0)
+				if (pos_max>=0)
 					e_idx = pos_max + pm->len;
 				else
 					e_idx = - pos_max + q + window_pos;
 				s_idx = e_idx - pm->len;
 				temp_char = *(kseq->seq.s + e_idx);
 				*(kseq->seq.s + e_idx) = '\0';
-				if (pos_max>0) 
-					fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s + s_idx);
+				if (pos_max>=0) 
+					fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max + 1, kseq->seq.s + s_idx);
 				else 
 					fprintf(output, "\t%.2f\t-%d\t%s\n",hit_max, e_idx , kseq->seq.s + s_idx);
 				*(kseq->seq.s + e_idx) = temp_char;

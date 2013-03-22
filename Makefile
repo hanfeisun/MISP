@@ -4,7 +4,7 @@ LIB = -lz -lm
 
 
 all: kseq.h misp.c motif.c
-	$(CC) -Wall -g $(SOURCES) -o misp $(LIB)
+	$(CC) -Wall -g $(SOURCES) -o misp -O3 $(LIB)
 
 dbg: kseq.h misp.c motif.c
 	$(CC) -g $(SOURCES) -o misp $(LIB)
