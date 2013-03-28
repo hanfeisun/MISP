@@ -10,7 +10,7 @@
 
 #define PSUDO_SMALL 0.0001
 
-int bg_counter(unsigned long *acnt, unsigned long *ccnt, unsigned long *other, char *seq) 
+int bg_counter(unsigned long *acnt, unsigned long *ccnt, unsigned long *other, char *seq)
 {
 	int i;
 	for (i=0; seq[i] != 0; ++i) {
@@ -46,7 +46,7 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 		perror("Error opening the pwm file");
 		exit(-1);
 	}
-	
+
 	first = 1;
 	pm->kinds = 4;
 	pm->len = 0;
@@ -54,7 +54,7 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 	for (i = 0; i < 4; i++)
 		pm->score[i] = (double *)malloc(sizeof(double) * PWM_MAX_COL);
 
-	
+
 	read = fgets (str, len, fp);
 	i = -1;
 	j = 0;
@@ -65,7 +65,7 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 		} else {
 			pch = strtok(NULL, " ");
 		}
-		
+
 		if (pch == NULL) {
 			if (i == -1) {} /* before reading motif */
 			else if (i ==0 ) {
@@ -81,7 +81,7 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 				j = 0;
 				i++;
 			}
-			
+
 			read = fgets (str, len, fp);
 			continue;
 		}
@@ -103,7 +103,7 @@ void pssm_reader(FILE *fp, struct pssm_matrix *pm)
 					strcpy(pm->name, pch);
 					i = 0;
 					first = 0;
-				} 
+				}
 				read = fgets (str, len, fp);
 			} else {
 				pm->score[i][j++] = atof(pch);
@@ -140,9 +140,9 @@ struct pssm_matrix *use_pssm(struct pssm_matrix *pm, char* name)
 	exit(1);
 }
 
-	
-				
-	
+
+
+
 void display_pwm(struct pwm_matrix *pm)
 {
 	int i;
@@ -185,7 +185,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 	for (i = 0; i < 4; i++)
 		mat[i] = (int *)malloc(sizeof(int) * pm->len);
 
-	
+
 	int tmp;
 	/* printf("pm->len(thred) is %d\n", pm->len);	 */
 
@@ -201,7 +201,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 		}
 	}
 
-	
+
 	maxT = 0;
 	minV = INT_MAX;
 
@@ -227,7 +227,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 	int r,s;
 	double sum;
 	init_array(table0, tmp+1, 0.0);
-	init_array(table1, tmp+1, 0.0);	
+	init_array(table1, tmp+1, 0.0);
 
 	for (j = 0; j < pm->kinds; ++j) {
 		if (j == PWM_BASE_C || j == PWM_BASE_G) {
@@ -240,7 +240,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 			exit(-1);
 		}
 	}
-	
+
 
 	for (i = 1; i < pm->len; ++i) {
 		for (j = 0; j< pm->kinds; ++j) {
@@ -256,7 +256,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 					exit(-1);
 				}
 			}
-			
+
 		}
 
 		for (r = 0; r <= tmp; ++r) {
@@ -273,7 +273,7 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 
 			return (double) ((r + (pm->len) * minV + 1) / PVAL_DP_MULTIPLIER);
 	}
-	
+
 	free(table0);
 	free(table1);
 	return (double) (((pm->len) * minV) / PVAL_DP_MULTIPLIER);
@@ -296,13 +296,13 @@ void base2code(char *seq, short *code) {
 		case 'A': case 'a':
 			code[i] = PWM_BASE_A;
 			break;
-		case 'C': case 'c': 
+		case 'C': case 'c':
 			code[i] = PWM_BASE_C;
 			break;
-		case 'T': case 't': 
+		case 'T': case 't':
 			code[i] = PWM_BASE_T;
 			break;
-		case 'G': case 'g': 
+		case 'G': case 'g':
 			code[i] = PWM_BASE_G;
 			break;
 		default:
@@ -312,8 +312,8 @@ void base2code(char *seq, short *code) {
 	}
 	code[i] = -1;
 	/* the end mark */
-		
-		
+
+
 }
 
 int pwm_reader(FILE *fp, struct pwm_matrix *pm)
@@ -334,7 +334,7 @@ int pwm_reader(FILE *fp, struct pwm_matrix *pm)
 	pm->weight = (int **)malloc(sizeof(int *) * pm->kinds);
 	for (i = 0; i < 4; i++)
 		pm->weight[i] = (int *)malloc(sizeof(int) * PWM_MAX_COL);
-	
+
 	read = fgets (str, len, fp);
 	/* read == -1: error or EOF*/
 	i = 0;
@@ -343,7 +343,7 @@ int pwm_reader(FILE *fp, struct pwm_matrix *pm)
 	while(read != NULL && i < 4) {
 		assert(j < PWM_MAX_COL);
 
-		if (j == 0) 
+		if (j == 0)
 			pch = strtok(str, " ");
 		else
 			pch = strtok(NULL, " ");
@@ -365,7 +365,7 @@ int pwm_reader(FILE *fp, struct pwm_matrix *pm)
 		} else {	/* pch has value */
 			assert((pm->weight[i][j++] = atoi(pch)) >= 0);
 		}
-		
+
 	}
 	printf("pm->len is %d\n", pm->len);
 	return 0;
