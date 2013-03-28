@@ -23,3 +23,6 @@ test:
 	time ./misp test.seq database/cistrome.db 0.001 all test
 	time ./misp test.seq database/cistrome.db 0.001 EN0055 test
 	time ./misp test2.seq database/cistrome.db 0.001 all test2
+	time ./misp test2.seq database/cistrome.db 0.001 all test2
+	time ./misp test3.seq database/cistrome.db 0.001 hPDI111 test3
+	time ./misp test3.seq database/cistrome.db 0.001 M01195 test3
