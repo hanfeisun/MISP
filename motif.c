@@ -122,9 +122,9 @@ void pssm2logodd(struct pssm_matrix *pm, double c_p)
 		for (i = 0; i < pm->kinds; ++i) {
 			for (j = 0; j < pm->len; ++j) {
 				if (i==PWM_BASE_G || i==PWM_BASE_C)
-					pm->score[i][j] = log(pm->score[i][j] / c_p + PSUDO_SMALL);
+					pm->score[i][j] = log(2 * pm->score[i][j] / c_p + PSUDO_SMALL);
 				else
-					pm->score[i][j] = log(pm->score[i][j] / (1 - c_p) + PSUDO_SMALL);
+					pm->score[i][j] = log(2* pm->score[i][j] / (1 - c_p) + PSUDO_SMALL);
 			}
 		}
 	}
@@ -269,9 +269,9 @@ double threshold_fromP (struct pssm_matrix *pm, double c_p, double p)
 	for (r = tmp; r >=0; --r) {
 		sum += table0[r];
 		/* printf("sum is %f r is %d\n", sum,r);	 */
-		if (sum > p)
-
+		if (sum > p){
 			return (double) ((r + (pm->len) * minV + 1) / PVAL_DP_MULTIPLIER);
+		}
 	}
 
 	free(table0);
