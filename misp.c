@@ -409,16 +409,16 @@ void lookahead_filter(int q, kseq_t *kseq, struct pssm_matrix *pm, float c_p, do
 				temp_char = *(kseq->seq.s + e_idx);
 				*(kseq->seq.s + e_idx) = '\0';
 				if (pos_max>=0)
-					fprintf(output, "\t%.2f\t%d\t%s\n",hit_max - tol, pos_max, kseq->seq.s + s_idx);
+					fprintf(output, "\t%.2f\t%d\t%s\n",hit_max, pos_max, kseq->seq.s + s_idx);
 				else
-					fprintf(output, "\t%.2f\t%d(-)\t%s\n",hit_max - tol, -pos_max , kseq->seq.s + s_idx);
+					fprintf(output, "\t%.2f\t%d(-)\t%s\n",hit_max, -pos_max , kseq->seq.s + s_idx);
 				*(kseq->seq.s + e_idx) = temp_char;
 			}
 			else
 				fprintf(output, "*\t0\t*\n");
 		} else {
 			if (hit_max > tol)
-				fprintf(output, "%.2f(%d),", hit_max - tol, pos_max);
+				fprintf(output, "%.2f(%d),", hit_max, pos_max);
 			else
 				fprintf(output, "0,");
 		}
