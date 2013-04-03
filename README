@@ -57,7 +57,7 @@ Column3: hit score:
     Scores lower than thredshold(tolerance) will be changed to zero.
 
 Column4: hit postion:
-    The position of the hits. This offset starts from 1. If the hits locate on the negative strand, this value is negative.
+    The position of the hits. This offset starts from 0. If the hits locate on the negative strand, this value is negative or followed by (-).
 
 Column5: sequence:
     The sequence at hits region
