@@ -1,6 +1,6 @@
 from xml.etree import ElementTree
 import sys
-# Usage: python3 cistrome-xml-parse.py ../database/cistrome.xml > ../database/newdb.db
+# Usage: python3 cistrome-xml-anno-parse.py ../database/cistrome.xml
 def print_findall(xPath, node,
                   extract=lambda x:x.text.strip(),
                   sep=" ",
