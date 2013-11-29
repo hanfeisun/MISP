@@ -65,7 +65,7 @@ Column5: sequence:
 For all motifs:
 
 Different motifs are separated by `\n` and different intervals are separeted by `,`.
-The value is hits score and the value in the round bracket is his position.
+The value is hits score and the value in the round bracket is hits position.
 
 Formatter
 =========
