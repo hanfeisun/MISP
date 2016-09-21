@@ -1,6 +1,13 @@
 ===========================
- misp: a fast Motif Scanner
+ MISP: a fast Motif Scanner
 ===========================
+
+
+Introduction
+===========
+
+MISP is a bioinformatics tool for matching position weight matrices (PWM) against DNA sequences. It uses an efficient matrix matching algorithm based on [MOODS](https://www.cs.helsinki.fi/group/pssmfind/) but is implemented by C instead of C++. The tool is integrated into a software package called [BETA](http://cistrome.org/BETA/) (Binding and expression target analysis).
+
 
 Install
 =======
@@ -23,7 +30,6 @@ For all motifs:
     misp <in.seq> <in.db> <p-value> all <output-prefix>
     
 The output file will be named `<output-prefix>_<motif-id>` or `<output-prefix>_all`
-
 
 Input
 =====
