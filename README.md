@@ -6,7 +6,7 @@
 Introduction
 ===========
 
-MISP is a bioinformatics tool for matching position weight matrices (PWM) against DNA sequences. It uses an efficient matrix matching algorithm based on [MOODS](https://www.cs.helsinki.fi/group/pssmfind/) but is implemented by C instead of C++. The tool is integrated into a software package called [BETA](http://cistrome.org/BETA/) (Binding and expression target analysis).
+MISP is a bioinformatics tool for matching position weight matrices (PWM) against DNA sequences. It uses an efficient matrix matching algorithm based on [MOODS](https://www.cs.helsinki.fi/group/pssmfind/) but is implemented by C instead of C++. The tool is integrated into a software package called [BETA](http://cistrome.org/BETA/) (Binding and expression target analysis). The related work is [published](http://www.nature.com/nprot/journal/v8/n12/full/nprot.2013.150.html) by Nature Protocol.
 
 
 Install
@@ -14,20 +14,31 @@ Install
 
 
 Type in this command under the project's directory to install:
+```
     make
+```
 
 To see the test result, type in:
+```
     make test
+```
 
 
 Usage
 =====
 
 For one motif:
+
+```
     misp <in.seq> <in.db> <p-value> <motif-id> <output-prefix>
+```
+
 
 For all motifs:
+
+```
     misp <in.seq> <in.db> <p-value> all <output-prefix>
+```
     
 The output file will be named `<output-prefix>_<motif-id>` or `<output-prefix>_all`
 
@@ -44,28 +55,34 @@ Test
 ====
 
 Enter the directory of misp, and then type in:
+
+```
     ./misp test.seq database/cistrome.db 0.001 all test
+```
 
 or:
+
+```
     ./misp test.seq database/cistrome.db 0.001 EN_0055 test
+```
     
 Output
 ======
 
 For one motif:
 
-Column1: sequence name
+* Column1: sequence name
     
-Column2: sequence length
+* Column2: sequence length
     
-Column3: hit score:
+* Column3: hit score:
     The higher this score is, the better this sequence matches the motif.
     Scores lower than thredshold(tolerance) will be changed to zero.
 
-Column4: hit postion:
+* Column4: hit postion:
     The position of the hits. This offset starts from 0. If the hits locate on the negative strand, this value is negative or followed by (-).
 
-Column5: sequence:
+* Column5: sequence:
     The sequence at hits region
 
 For all motifs:
@@ -78,4 +95,6 @@ Formatter
 
 Try this command for the result of all motifs to get a tabular format:
 
-awk -f mis_formatter.awk <result_of_mis>
+```
+awk -f misp_formatter.awk <result_of_mis>
+```
